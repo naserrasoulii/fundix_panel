@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { loginAction } from "@/app/[locale]/login/actions";
 
 export default function LoginPage({
   params
@@ -20,13 +21,14 @@ export default function LoginPage({
           </p>
         </div>
 
-        <form className="space-y-4">
+        <form className="space-y-4" action={loginAction}>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="username">
               Username
             </label>
             <input
               id="username"
+              name="username"
               type="text"
               placeholder="fundix.admin"
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
@@ -38,6 +40,7 @@ export default function LoginPage({
             </label>
             <input
               id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
