@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -34,7 +34,8 @@ export function AppShell({ locale, children }: AppShellProps) {
   }));
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/40">
+    <div className="relative flex min-h-screen flex-col bg-muted/40">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent" />
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
         <div className="container flex h-16 items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -60,6 +61,13 @@ export function AppShell({ locale, children }: AppShellProps) {
             </Link>
           </div>
           <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 rounded-full border bg-background px-3 py-1.5 text-xs text-muted-foreground md:flex">
+              <Search className="h-3.5 w-3.5" />
+              Search funds, clients, reports...
+            </div>
+            <Button variant="outline" size="icon" className="rounded-full" aria-label="Notifications">
+              <Bell className="h-4 w-4" />
+            </Button>
             <Button variant="secondary" className="hidden sm:inline-flex">
               Add module
             </Button>
@@ -68,7 +76,7 @@ export function AppShell({ locale, children }: AppShellProps) {
         </div>
       </header>
 
-      <div className="container flex flex-1 gap-6 py-6">
+      <div className="container z-10 flex flex-1 gap-6 py-6">
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r bg-background p-6 transition lg:static lg:w-64 lg:translate-x-0 lg:rounded-2xl lg:border",
@@ -101,7 +109,7 @@ export function AppShell({ locale, children }: AppShellProps) {
               </Link>
             ))}
           </nav>
-          <div className="mt-6 rounded-xl border bg-muted/60 p-4 text-xs text-muted-foreground">
+          <div className="mt-6 rounded-xl border bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 text-xs text-muted-foreground">
             Add widgets, analytics, and portfolio modules here as you grow the
             dashboard.
           </div>
