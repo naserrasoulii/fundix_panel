@@ -1,13 +1,16 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { loginAction } from "@/app/[locale]/login/actions";
 
-export default function LoginPage({
+export default async function LoginPage({
   params
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
       <div className="w-full max-w-md rounded-2xl border bg-background p-8 shadow-sm">
@@ -26,24 +29,22 @@ export default function LoginPage({
             <label className="text-sm font-medium" htmlFor="username">
               Username
             </label>
-            <input
+            <Input
               id="username"
               name="username"
               type="text"
               placeholder="fundix.admin"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="password">
               Password
             </label>
-            <input
+            <Input
               id="password"
               name="password"
               type="password"
               placeholder="••••••••"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           <Button type="submit" className="w-full">
@@ -53,7 +54,7 @@ export default function LoginPage({
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
           <Link
-            href={`/${params.locale}/dashboard`}
+            href={`/${locale}/dashboard`}
             className="font-medium text-primary hover:underline"
           >
             Go to dashboard preview

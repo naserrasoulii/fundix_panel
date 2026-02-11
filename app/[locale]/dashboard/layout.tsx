@@ -1,13 +1,18 @@
-"use client";
-
-import * as React from "react";
-
 import { ReactQueryProvider } from "@/components/react-query-provider";
+import { AppShell } from "@/components/app-shell";
 
-type DashboardLayoutProps = {
+export default async function DashboardLayout({
+  children,
+  params
+}: {
   children: React.ReactNode;
-};
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  return <ReactQueryProvider>{children}</ReactQueryProvider>;
+  return (
+    <ReactQueryProvider>
+      <AppShell locale={locale}>{children}</AppShell>
+    </ReactQueryProvider>
+  );
 }

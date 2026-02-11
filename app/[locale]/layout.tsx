@@ -4,18 +4,19 @@ const locales = ["en"] as const;
 
 type Locale = (typeof locales)[number];
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
   params
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const locale = params.locale as Locale;
+  const { locale } = await params;
+  const typedLocale = locale as Locale;
 
-  if (!locales.includes(locale)) {
+  if (!locales.includes(typedLocale)) {
     notFound();
   }
 
-  return <div lang={locale}>{children}</div>;
+  return <div lang={typedLocale}>{children}</div>;
 }
