@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { cn } from "@/lib/utils";
-import { logoutAction } from "@/app/[locale]/login/actions";
 
 type NavItem = {
   label: string;
@@ -148,7 +147,7 @@ export function AppShell({ locale, children }: AppShellProps) {
             Use this panel to review crypto operations, manage withdrawals, and
             issue user notifications.
           </div>
-          <form action={logoutAction} className="mt-4">
+          <form action="/api/auth/logout" method="post" className="mt-4">
             <input type="hidden" name="locale" value={locale} />
             <Button
               type="submit"

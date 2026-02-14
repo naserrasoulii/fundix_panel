@@ -6,7 +6,7 @@ import type {
   CreatePromoDto,
   CreateUserNotificationPayload,
   UpdateUserRolePayload,
-  UpdateUserStatusPayload
+  UpdateUserStatusPayload,
 } from "@/lib/admin-types";
 
 function sleep(ms: number) {
@@ -27,7 +27,9 @@ function nowIso() {
 function promoStatus(promo: Pick<AdminPromotion, "startAt" | "endAt">) {
   const now = Date.now();
   const start = new Date(promo.startAt).valueOf();
-  const end = promo.endAt ? new Date(promo.endAt).valueOf() : Number.POSITIVE_INFINITY;
+  const end = promo.endAt
+    ? new Date(promo.endAt).valueOf()
+    : Number.POSITIVE_INFINITY;
 
   if (Number.isNaN(start) || Number.isNaN(end)) {
     return "scheduled" as const;
@@ -64,7 +66,7 @@ const mockState: {
       kycStatus: "verified",
       directReferrals: 0,
       balanceUsd: "0",
-      createdAt: "2025-10-02T09:12:00.000Z"
+      createdAt: "2025-10-02T09:12:00.000Z",
     },
     {
       id: "u_2001",
@@ -75,7 +77,7 @@ const mockState: {
       kycStatus: "pending",
       directReferrals: 3,
       balanceUsd: "1280.42",
-      createdAt: "2025-12-18T13:45:00.000Z"
+      createdAt: "2025-12-18T13:45:00.000Z",
     },
     {
       id: "u_2002",
@@ -86,7 +88,7 @@ const mockState: {
       kycStatus: "verified",
       directReferrals: 12,
       balanceUsd: "9840.10",
-      createdAt: "2025-11-22T07:22:00.000Z"
+      createdAt: "2025-11-22T07:22:00.000Z",
     },
     {
       id: "u_2003",
@@ -97,7 +99,7 @@ const mockState: {
       kycStatus: "rejected",
       directReferrals: 1,
       balanceUsd: "54.13",
-      createdAt: "2025-09-03T18:04:00.000Z"
+      createdAt: "2025-09-03T18:04:00.000Z",
     },
     {
       id: "u_2004",
@@ -108,8 +110,8 @@ const mockState: {
       kycStatus: "unverified",
       directReferrals: 0,
       balanceUsd: "0.00",
-      createdAt: "2026-01-08T10:30:00.000Z"
-    }
+      createdAt: "2026-01-08T10:30:00.000Z",
+    },
   ],
   transactions: [
     {
@@ -122,8 +124,9 @@ const mockState: {
       amountUsd: "500",
       status: "completed",
       network: "TRC20",
-      txHash: "0x2e2d4c57f9a4d7a1f3f9b8d2ad219d1cbd54c2d0a28a2b9c2d9d9d09b0aabc12",
-      createdAt: "2026-02-10T08:10:00.000Z"
+      txHash:
+        "0x2e2d4c57f9a4d7a1f3f9b8d2ad219d1cbd54c2d0a28a2b9c2d9d9d09b0aabc12",
+      createdAt: "2026-02-10T08:10:00.000Z",
     },
     {
       id: "tx_9002",
@@ -136,7 +139,7 @@ const mockState: {
       status: "pending",
       network: "TRC20",
       txHash: null,
-      createdAt: "2026-02-10T12:22:00.000Z"
+      createdAt: "2026-02-10T12:22:00.000Z",
     },
     {
       id: "tx_9003",
@@ -149,8 +152,8 @@ const mockState: {
       status: "failed",
       network: null,
       txHash: null,
-      createdAt: "2026-02-09T19:01:00.000Z"
-    }
+      createdAt: "2026-02-09T19:01:00.000Z",
+    },
   ],
   withdraws: [
     {
@@ -165,7 +168,7 @@ const mockState: {
       status: "pending",
       requestedAt: "2026-02-10T12:21:00.000Z",
       decidedAt: null,
-      rejectReason: null
+      rejectReason: null,
     },
     {
       id: "wd_7002",
@@ -179,7 +182,7 @@ const mockState: {
       status: "approved",
       requestedAt: "2026-02-08T10:02:00.000Z",
       decidedAt: "2026-02-08T10:18:00.000Z",
-      rejectReason: null
+      rejectReason: null,
     },
     {
       id: "wd_7003",
@@ -193,8 +196,8 @@ const mockState: {
       status: "rejected",
       requestedAt: "2026-02-06T15:43:00.000Z",
       decidedAt: "2026-02-06T16:00:00.000Z",
-      rejectReason: "KYC not verified"
-    }
+      rejectReason: "KYC not verified",
+    },
   ],
   promotions: [
     {
@@ -208,7 +211,7 @@ const mockState: {
       rewardAmountUsd: "10",
       maxGrantsPerUser: 3,
       createdAt: "2026-01-28T09:40:00.000Z",
-      status: "active"
+      status: "active",
     },
     {
       id: "pr_3002",
@@ -221,10 +224,10 @@ const mockState: {
       rewardAmountUsd: "25",
       maxGrantsPerUser: 1,
       createdAt: "2026-02-05T11:00:00.000Z",
-      status: "scheduled"
-    }
+      status: "scheduled",
+    },
   ],
-  notifications: []
+  notifications: [],
 };
 
 export const mockAdminApi = {
@@ -232,21 +235,29 @@ export const mockAdminApi = {
 
   async listUsers(): Promise<AdminUser[]> {
     await sleep(250);
-    return [...mockState.users].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...mockState.users].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   },
 
-  async sendUserNotification(userId: string, payload: CreateUserNotificationPayload) {
+  async sendUserNotification(
+    userId: string,
+    payload: CreateUserNotificationPayload,
+  ) {
     await sleep(350);
     mockState.notifications.unshift({
       id: randomId("nt"),
       userId,
       payload,
-      createdAt: nowIso()
+      createdAt: nowIso(),
     });
     return { ok: true } as const;
   },
 
-  async updateUserRole(userId: string, payload: UpdateUserRolePayload): Promise<AdminUser> {
+  async updateUserRole(
+    userId: string,
+    payload: UpdateUserRolePayload,
+  ): Promise<AdminUser> {
     await sleep(250);
     const user = mockState.users.find((item) => item.id === userId);
     if (!user) {
@@ -258,7 +269,7 @@ export const mockAdminApi = {
 
   async updateUserStatus(
     userId: string,
-    payload: UpdateUserStatusPayload
+    payload: UpdateUserStatusPayload,
   ): Promise<AdminUser> {
     await sleep(250);
     const user = mockState.users.find((item) => item.id === userId);
@@ -271,12 +282,16 @@ export const mockAdminApi = {
 
   async listTransactions(): Promise<AdminTransaction[]> {
     await sleep(250);
-    return [...mockState.transactions].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...mockState.transactions].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   },
 
   async listWithdrawRequests(): Promise<AdminWithdrawRequest[]> {
     await sleep(250);
-    return [...mockState.withdraws].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+    return [...mockState.withdraws].sort((a, b) =>
+      b.requestedAt.localeCompare(a.requestedAt),
+    );
   },
 
   async approveWithdrawRequest(withdrawId: string) {
@@ -313,7 +328,7 @@ export const mockAdminApi = {
     await sleep(250);
     const normalized = mockState.promotions.map((promo) => ({
       ...promo,
-      status: promoStatus(promo)
+      status: promoStatus(promo),
     }));
     return normalized.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
@@ -331,9 +346,9 @@ export const mockAdminApi = {
       rewardAmountUsd: dto.rewardAmountUsd,
       maxGrantsPerUser: dto.maxGrantsPerUser,
       createdAt: nowIso(),
-      status: promoStatus(dto)
+      status: promoStatus(dto),
     };
     mockState.promotions.unshift(created);
     return created;
-  }
+  },
 };

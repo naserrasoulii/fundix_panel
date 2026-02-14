@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const locales = ["en"];
+const ACCESS_TOKEN_COOKIE = "access_token";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -20,6 +21,32 @@ export function middleware(request: NextRequest) {
   if (!hasLocale) {
     const url = request.nextUrl.clone();
     url.pathname = `/en${pathname === "/" ? "" : pathname}`;
+    return NextResponse.redirect(url);
+  }
+
+  const locale = pathname.split("/")[1];
+  const loginPath = `/${locale}/admin/login`;
+  const legacyLoginPath = `/${locale}/login`;
+  const dashboardPath = `/${locale}/dashboard`;
+  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const hasToken = Boolean(token);
+  const isLoginRoute = pathname === loginPath || pathname === legacyLoginPath;
+
+  if (hasToken && isLoginRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = dashboardPath;
+    return NextResponse.redirect(url);
+  }
+
+  if (!hasToken && pathname === legacyLoginPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = loginPath;
+    return NextResponse.redirect(url);
+  }
+
+  if (!hasToken && !isLoginRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = loginPath;
     return NextResponse.redirect(url);
   }
 
