@@ -4,11 +4,11 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  ADMIN_API_MODE,
   approveWithdrawRequest,
   listWithdrawRequests,
   rejectWithdrawRequest,
-  type AdminWithdrawRequest
+  type AdminWithdrawRequest,
+  type PaginatedResult
 } from "@/lib/admin-api";
 import { formatDateTime, formatUsd, shortHash } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,8 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
+const PAGE_SIZE = 20;
+
 function statusVariant(status: AdminWithdrawRequest["status"]) {
   switch (status) {
     case "approved":
@@ -56,6 +58,7 @@ export default function WithdrawsPage() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = React.useState("");
+  const [page, setPage] = React.useState(1);
   const [statusFilter, setStatusFilter] = React.useState<AdminWithdrawRequest["status"] | "all">(
     "all"
   );
@@ -65,22 +68,41 @@ export default function WithdrawsPage() {
   const [rejectTarget, setRejectTarget] = React.useState<AdminWithdrawRequest | null>(null);
   const [rejectReason, setRejectReason] = React.useState("");
 
+  React.useEffect(() => {
+    setPage(1);
+  }, [statusFilter, search]);
+
   const withdrawsQuery = useQuery({
-    queryKey: ["admin", "withdraw-requests"],
-    queryFn: listWithdrawRequests
+    queryKey: ["admin", "withdraw-requests", { page, statusFilter }],
+    queryFn: () =>
+      listWithdrawRequests({
+        page,
+        limit: PAGE_SIZE,
+        status: statusFilter
+      })
   });
 
   const approveMutation = useMutation({
     mutationFn: (withdrawId: string) => approveWithdrawRequest(withdrawId),
     onSuccess: (_data, withdrawId) => {
-      queryClient.setQueryData<AdminWithdrawRequest[]>(
-        ["admin", "withdraw-requests"],
+      queryClient.setQueryData<PaginatedResult<AdminWithdrawRequest>>(
+        ["admin", "withdraw-requests", { page, statusFilter }],
         (old) =>
-          old?.map((wd) =>
-            wd.id === withdrawId
-              ? { ...wd, status: "approved", decidedAt: new Date().toISOString(), rejectReason: null }
-              : wd
-          ) ?? old
+          old
+            ? {
+                ...old,
+                items: old.items.map((wd) =>
+                  wd.id === withdrawId
+                    ? {
+                        ...wd,
+                        status: "approved",
+                        decidedAt: new Date().toISOString(),
+                        rejectReason: null
+                      }
+                    : wd
+                )
+              }
+            : old
       );
       setFlash("Withdraw request approved.");
     },
@@ -93,19 +115,24 @@ export default function WithdrawsPage() {
     mutationFn: ({ withdrawId, reason }: { withdrawId: string; reason: string }) =>
       rejectWithdrawRequest(withdrawId, reason),
     onSuccess: (_data, variables) => {
-      queryClient.setQueryData<AdminWithdrawRequest[]>(
-        ["admin", "withdraw-requests"],
+      queryClient.setQueryData<PaginatedResult<AdminWithdrawRequest>>(
+        ["admin", "withdraw-requests", { page, statusFilter }],
         (old) =>
-          old?.map((wd) =>
-            wd.id === variables.withdrawId
-              ? {
-                  ...wd,
-                  status: "rejected",
-                  decidedAt: new Date().toISOString(),
-                  rejectReason: variables.reason
-                }
-              : wd
-          ) ?? old
+          old
+            ? {
+                ...old,
+                items: old.items.map((wd) =>
+                  wd.id === variables.withdrawId
+                    ? {
+                        ...wd,
+                        status: "rejected",
+                        decidedAt: new Date().toISOString(),
+                        rejectReason: variables.reason
+                      }
+                    : wd
+                )
+              }
+            : old
       );
       setFlash("Withdraw request rejected.");
       setRejectOpen(false);
@@ -125,7 +152,18 @@ export default function WithdrawsPage() {
     return () => window.clearTimeout(timeout);
   }, [flash]);
 
-  const withdraws = withdrawsQuery.data ?? [];
+  const withdraws = withdrawsQuery.data?.items ?? [];
+  const total = withdrawsQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = total === 0 ? 0 : Math.min(page * PAGE_SIZE, total);
+
+  React.useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
 
@@ -161,7 +199,7 @@ export default function WithdrawsPage() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <div className="text-xs text-muted-foreground">
-            Data source: {ADMIN_API_MODE === "mock" ? "Mock" : "API"}
+            Data source: API
           </div>
           <Input
             value={search}
@@ -404,6 +442,33 @@ export default function WithdrawsPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border bg-background p-4 text-sm shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-muted-foreground">
+          Showing {rangeStart}-{rangeEnd} of {total} withdrawals
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={page <= 1 || withdrawsQuery.isFetching}
+          >
+            Previous
+          </Button>
+          <span className="px-2 text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            disabled={page >= totalPages || withdrawsQuery.isFetching}
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       <Dialog

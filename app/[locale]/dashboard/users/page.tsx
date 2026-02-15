@@ -4,11 +4,11 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  ADMIN_API_MODE,
   listUsers,
   sendUserNotification,
   updateUserRole,
   updateUserStatus,
+  type PaginatedResult,
   type AdminUser
 } from "@/lib/admin-api";
 import { formatDateTime, formatUsd } from "@/lib/formatters";
@@ -39,6 +39,8 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+
+const PAGE_SIZE = 20;
 
 type NotificationDraft = {
   title: string;
@@ -83,6 +85,7 @@ function kycBadge(kycStatus: AdminUser["kycStatus"]) {
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = React.useState("");
+  const [page, setPage] = React.useState(1);
   const [flash, setFlash] = React.useState<string | null>(null);
   const [selectedUser, setSelectedUser] = React.useState<AdminUser | null>(null);
   const [notifyOpen, setNotifyOpen] = React.useState(false);
@@ -92,23 +95,43 @@ export default function UsersPage() {
     level: "info"
   });
 
+  React.useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const usersQueryKey = React.useMemo(
+    () => ["admin", "users", page] as const,
+    [page]
+  );
+
   const usersQuery = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: listUsers
+    queryKey: usersQueryKey,
+    queryFn: () =>
+      listUsers({
+        page,
+        limit: PAGE_SIZE
+      })
   });
 
   const roleMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: AdminUser["role"] }) =>
       updateUserRole(userId, role),
-    onSuccess: (updatedUser) => {
-      queryClient.setQueryData<AdminUser[]>(
-        ["admin", "users"],
+    onSuccess: (_result, variables) => {
+      const cachedUsers = queryClient.getQueryData<PaginatedResult<AdminUser>>(usersQueryKey);
+      const target = cachedUsers?.items.find((user) => user.id === variables.userId);
+      queryClient.setQueryData<PaginatedResult<AdminUser>>(
+        usersQueryKey,
         (old) =>
-          old?.map((user) =>
-            user.id === updatedUser.id ? { ...user, role: updatedUser.role } : user
-          ) ?? old
+          old
+            ? {
+                ...old,
+                items: old.items.map((user) =>
+                  user.id === variables.userId ? { ...user, role: variables.role } : user
+                )
+              }
+            : old
       );
-      setFlash(`Role updated for ${updatedUser.username}.`);
+      setFlash(`Role updated for ${target?.username ?? "user"}.`);
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : "Failed to update role";
@@ -124,17 +147,24 @@ export default function UsersPage() {
       userId: string;
       status: Extract<AdminUser["status"], "active" | "suspended">;
     }) => updateUserStatus(userId, status),
-    onSuccess: (updatedUser) => {
-      queryClient.setQueryData<AdminUser[]>(
-        ["admin", "users"],
+    onSuccess: (_result, variables) => {
+      const cachedUsers = queryClient.getQueryData<PaginatedResult<AdminUser>>(usersQueryKey);
+      const target = cachedUsers?.items.find((user) => user.id === variables.userId);
+      queryClient.setQueryData<PaginatedResult<AdminUser>>(
+        usersQueryKey,
         (old) =>
-          old?.map((user) =>
-            user.id === updatedUser.id
-              ? { ...user, status: statusLabel(updatedUser.status) }
-              : user
-          ) ?? old
+          old
+            ? {
+                ...old,
+                items: old.items.map((user) =>
+                  user.id === variables.userId
+                    ? { ...user, status: variables.status }
+                    : user
+                )
+              }
+            : old
       );
-      setFlash(`Status updated for ${updatedUser.username}.`);
+      setFlash(`Status updated for ${target?.username ?? "user"}.`);
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : "Failed to update status";
@@ -169,7 +199,18 @@ export default function UsersPage() {
     return () => window.clearTimeout(timeout);
   }, [flash]);
 
-  const users = usersQuery.data ?? [];
+  const users = usersQuery.data?.items ?? [];
+  const total = usersQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = total === 0 ? 0 : Math.min(page * PAGE_SIZE, total);
+
+  React.useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const filteredUsers = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) {
@@ -225,7 +266,7 @@ export default function UsersPage() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <div className="text-xs text-muted-foreground">
-            Data source: {ADMIN_API_MODE === "mock" ? "Mock" : "API"}
+            Data source: API
           </div>
           <Input
             value={search}
@@ -528,6 +569,33 @@ export default function UsersPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border bg-background p-4 text-sm shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-muted-foreground">
+          Showing {rangeStart}-{rangeEnd} of {total} users
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={page <= 1 || usersQuery.isFetching}
+          >
+            Previous
+          </Button>
+          <span className="px-2 text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            disabled={page >= totalPages || usersQuery.isFetching}
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       <Dialog

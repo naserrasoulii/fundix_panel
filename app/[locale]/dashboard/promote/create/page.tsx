@@ -529,8 +529,8 @@ export default function PromoteCreatePage() {
           </div>
 
           <div className="rounded-2xl border bg-muted/40 p-6 text-sm text-muted-foreground">
-            Endpoint assumptions: this UI calls `POST /api/admin/promotions` to create, and
-            `GET /api/admin/promotions` for listing. Adjust in `lib/admin-api.ts` if your
+            Endpoint assumptions: this UI calls `POST /api/admin/promos` to create, and
+            `GET /api/admin/promos` for listing. Adjust in `lib/admin-api.ts` if your
             backend routes differ.
           </div>
         </aside>

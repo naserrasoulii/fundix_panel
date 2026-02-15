@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { ADMIN_API_MODE, listTransactions, type AdminTransaction } from "@/lib/admin-api";
+import { listTransactions, type AdminTransaction } from "@/lib/admin-api";
 import { formatDateTime, formatUsd, shortHash } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+
+const PAGE_SIZE = 20;
 
 function statusVariant(status: AdminTransaction["status"]) {
   switch (status) {
@@ -52,16 +54,37 @@ function typeVariant(type: AdminTransaction["type"]) {
 
 export default function TransactionsPage() {
   const [search, setSearch] = React.useState("");
+  const [page, setPage] = React.useState(1);
   const [statusFilter, setStatusFilter] = React.useState<AdminTransaction["status"] | "all">(
     "all"
   );
 
+  React.useEffect(() => {
+    setPage(1);
+  }, [statusFilter, search]);
+
   const transactionsQuery = useQuery({
-    queryKey: ["admin", "transactions"],
-    queryFn: listTransactions
+    queryKey: ["admin", "transactions", { page, statusFilter }],
+    queryFn: () =>
+      listTransactions({
+        page,
+        limit: PAGE_SIZE,
+        status: statusFilter
+      })
   });
 
-  const transactions = transactionsQuery.data ?? [];
+  const transactions = transactionsQuery.data?.items ?? [];
+  const total = transactionsQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = total === 0 ? 0 : Math.min(page * PAGE_SIZE, total);
+
+  React.useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
 
@@ -95,7 +118,7 @@ export default function TransactionsPage() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <div className="text-xs text-muted-foreground">
-            Data source: {ADMIN_API_MODE === "mock" ? "Mock" : "API"}
+            Data source: API
           </div>
           <Input
             value={search}
@@ -273,6 +296,33 @@ export default function TransactionsPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border bg-background p-4 text-sm shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-muted-foreground">
+          Showing {rangeStart}-{rangeEnd} of {total} transactions
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={page <= 1 || transactionsQuery.isFetching}
+          >
+            Previous
+          </Button>
+          <span className="px-2 text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            disabled={page >= totalPages || transactionsQuery.isFetching}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

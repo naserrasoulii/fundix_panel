@@ -22,7 +22,7 @@ async function submitLogin(
 
   if (!username || !password) {
     return {
-      error: "Username and password are required.",
+      error: "Username/email and password are required.",
     };
   }
 
@@ -72,13 +72,13 @@ export function LoginForm({ locale }: { locale: string }) {
       <input type="hidden" name="locale" value={locale} />
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="username">
-          Username
+          Username or Email
         </label>
         <Input
           id="username"
           name="username"
           type="text"
-          placeholder="fundix.admin"
+          placeholder="username"
         />
       </div>
       <div className="space-y-2">

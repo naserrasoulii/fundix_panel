@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const locales = ["en"];
-const ACCESS_TOKEN_COOKIE = "access_token";
+const ACCESS_TOKEN_COOKIE = "token";
+const LEGACY_ACCESS_TOKEN_COOKIE = "access_token";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -28,7 +29,9 @@ export function middleware(request: NextRequest) {
   const loginPath = `/${locale}/admin/login`;
   const legacyLoginPath = `/${locale}/login`;
   const dashboardPath = `/${locale}/dashboard`;
-  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const token =
+    request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ??
+    request.cookies.get(LEGACY_ACCESS_TOKEN_COOKIE)?.value;
   const hasToken = Boolean(token);
   const isLoginRoute = pathname === loginPath || pathname === legacyLoginPath;
 
