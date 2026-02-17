@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { backendFetch } from "../../_lib/backend_fetch";
 import { HttpError } from "@/lib/lib/http-error";
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const data = await backendFetch<{
       id: string;

@@ -33,6 +33,10 @@ async function logoutAndRedirect() {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export async function internalFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!path.startsWith("/api/")) {
     throw new Error("Only /api/* is allowed");
@@ -43,8 +47,8 @@ export async function internalFetch<T>(path: string, init: RequestInit = {}): Pr
     credentials: "include",
     headers: {
       Accept: "application/json",
-      ...(init.headers as any),
-    },
+      ...Object.fromEntries(new Headers(init.headers).entries()),
+    }
   });
 
   if (res.status === 401) {
@@ -54,17 +58,19 @@ export async function internalFetch<T>(path: string, init: RequestInit = {}): Pr
 
   if (!res.ok) {
     const payload = await readBody(res);
-    const normalizedPayload =
-      payload && typeof payload === "object"
+    const normalizedPayload: Record<string, unknown> =
+      isRecord(payload)
         ? payload
         : {
             message: payload ?? `Request failed with status ${res.status}`,
           };
     const message =
-      normalizedPayload && typeof normalizedPayload === "object" && "message" in normalizedPayload
-        ? String((normalizedPayload as any).message)
+      typeof normalizedPayload.message === "string"
+        ? normalizedPayload.message
         : `Request failed with status ${res.status}`;
-    throw new HttpError(message, res.status, (normalizedPayload as any)?.code, normalizedPayload);
+    const code =
+      normalizedPayload.code !== undefined ? String(normalizedPayload.code) : undefined;
+    throw new HttpError(message, res.status, code, normalizedPayload);
   }
 
   return (await readBody(res)) as T;

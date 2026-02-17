@@ -73,7 +73,6 @@ export default function TransactionsPage() {
       })
   });
 
-  const transactions = transactionsQuery.data?.items ?? [];
   const total = transactionsQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -86,6 +85,7 @@ export default function TransactionsPage() {
   }, [page, totalPages]);
 
   const filtered = React.useMemo(() => {
+    const transactions = transactionsQuery.data?.items ?? [];
     const q = search.trim().toLowerCase();
 
     return transactions.filter((tx) => {
@@ -104,7 +104,7 @@ export default function TransactionsPage() {
         (tx.txHash ? tx.txHash.toLowerCase().includes(q) : false)
       );
     });
-  }, [transactions, search, statusFilter]);
+  }, [transactionsQuery.data?.items, search, statusFilter]);
 
   return (
     <div className="space-y-6">

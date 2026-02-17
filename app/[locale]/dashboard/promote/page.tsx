@@ -62,7 +62,6 @@ export default function PromotePage() {
       })
   });
 
-  const promotions = promotionsQuery.data?.items ?? [];
   const total = promotionsQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -75,6 +74,7 @@ export default function PromotePage() {
   }, [page, totalPages]);
 
   const filtered = React.useMemo(() => {
+    const promotions = promotionsQuery.data?.items ?? [];
     const q = search.trim().toLowerCase();
 
     return promotions.filter((promo) => {
@@ -90,7 +90,7 @@ export default function PromotePage() {
         promo.status.toLowerCase().includes(q)
       );
     });
-  }, [promotions, search, statusFilter]);
+  }, [promotionsQuery.data?.items, search, statusFilter]);
 
   return (
     <div className="space-y-6">

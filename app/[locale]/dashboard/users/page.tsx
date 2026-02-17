@@ -199,7 +199,6 @@ export default function UsersPage() {
     return () => window.clearTimeout(timeout);
   }, [flash]);
 
-  const users = usersQuery.data?.items ?? [];
   const total = usersQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -212,6 +211,7 @@ export default function UsersPage() {
   }, [page, totalPages]);
 
   const filteredUsers = React.useMemo(() => {
+    const users = usersQuery.data?.items ?? [];
     const q = search.trim().toLowerCase();
     if (!q) {
       return users;
@@ -226,7 +226,7 @@ export default function UsersPage() {
         statusLabel(user.status).toLowerCase().includes(q)
       );
     });
-  }, [users, search]);
+  }, [usersQuery.data?.items, search]);
 
   const canSend =
     Boolean(selectedUser) &&

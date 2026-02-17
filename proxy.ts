@@ -4,7 +4,7 @@ const locales = ["en"];
 const ACCESS_TOKEN_COOKIE = "token";
 const LEGACY_ACCESS_TOKEN_COOKIE = "access_token";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (

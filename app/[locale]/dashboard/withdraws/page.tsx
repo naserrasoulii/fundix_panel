@@ -152,7 +152,6 @@ export default function WithdrawsPage() {
     return () => window.clearTimeout(timeout);
   }, [flash]);
 
-  const withdraws = withdrawsQuery.data?.items ?? [];
   const total = withdrawsQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -165,6 +164,7 @@ export default function WithdrawsPage() {
   }, [page, totalPages]);
 
   const filtered = React.useMemo(() => {
+    const withdraws = withdrawsQuery.data?.items ?? [];
     const q = search.trim().toLowerCase();
 
     return withdraws.filter((wd) => {
@@ -183,7 +183,7 @@ export default function WithdrawsPage() {
         wd.address.toLowerCase().includes(q)
       );
     });
-  }, [withdraws, search, statusFilter]);
+  }, [withdrawsQuery.data?.items, search, statusFilter]);
 
   const canReject = rejectReason.trim().length >= 3 && !rejectMutation.isPending;
 
