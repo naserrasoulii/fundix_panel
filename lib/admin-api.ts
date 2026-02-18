@@ -90,6 +90,8 @@ type BackendUserItem = {
   username?: string;
   status?: string;
   role?: string;
+  directReferrals?: number;
+  balance?: string | number | null;
   createdAt?: string;
 };
 
@@ -499,8 +501,8 @@ function mapUser(item: BackendUserItem): AdminUser {
     role: mapUserRole(normalizeString(item.role, "USER")),
     status: mapUserStatus(normalizeString(item.status, "ACTIVE")),
     kycStatus: "unverified",
-    directReferrals: 0,
-    balanceUsd: "0",
+    directReferrals: normalizeCount(item.directReferrals),
+    balanceUsd: normalizeString(item.balance, "0"),
     createdAt: normalizeDate(item.createdAt),
   };
 }

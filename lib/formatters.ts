@@ -1,7 +1,15 @@
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
+  minimumFractionDigits: 2,
   maximumFractionDigits: 2
+});
+
+const usdPreciseFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 6
 });
 
 export function formatUsd(value: number | string) {
@@ -10,7 +18,9 @@ export function formatUsd(value: number | string) {
     return String(value);
   }
 
-  return usdFormatter.format(numericValue);
+  const formatter =
+    Math.abs(numericValue) > 0 && Math.abs(numericValue) < 1 ? usdPreciseFormatter : usdFormatter;
+  return formatter.format(numericValue);
 }
 
 export function formatDateTime(value: string) {
@@ -44,4 +54,3 @@ export function toIsoStringFromLocalInput(value: string) {
 
   return date.toISOString();
 }
-

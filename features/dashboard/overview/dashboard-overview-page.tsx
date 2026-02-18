@@ -33,7 +33,7 @@ function formatCount(value: number) {
   return value.toLocaleString("en-US");
 }
 
-function formatTokenBalance(value: string | null, symbol: string) {
+function formatTokenBalance(value: string | null, symbol: string, decimals: number) {
   if (!value) {
     return "Not configured";
   }
@@ -43,8 +43,11 @@ function formatTokenBalance(value: string | null, symbol: string) {
     return `${value} ${symbol}`;
   }
 
-  const maximumFractionDigits = symbol === "BNB" ? 6 : 2;
+  const maximumFractionDigits = Math.min(Math.max(decimals, 0), 6);
+  const minimumFractionDigits =
+    Math.abs(numericValue) > 0 && Math.abs(numericValue) < 1 ? 2 : 0;
   return `${numericValue.toLocaleString("en-US", {
+    minimumFractionDigits,
     maximumFractionDigits
   })} ${symbol}`;
 }
@@ -103,20 +106,28 @@ export function DashboardOverviewPage() {
           id: "withdraw-requests",
           title: "Withdraw Requests",
           value: formatCount(overview.withdrawalRequestsCount),
-          detail: "Total requests",
+          detail: "Open requests (pending)",
           icon: CircleAlert
         },
         {
           id: "hot-wallet",
           title: "Hot Wallet Balance",
-          value: formatTokenBalance(overview.hotWallet.balance, overview.hotWallet.asset),
+          value: formatTokenBalance(
+            overview.hotWallet.balance,
+            overview.hotWallet.asset,
+            overview.hotWallet.decimals
+          ),
           detail: shortAddress(overview.hotWallet.address),
           icon: Wallet
         },
         {
           id: "gas-wallet",
           title: "Gas Wallet Balance",
-          value: formatTokenBalance(overview.gasWallet.balance, overview.gasWallet.asset),
+          value: formatTokenBalance(
+            overview.gasWallet.balance,
+            overview.gasWallet.asset,
+            overview.gasWallet.decimals
+          ),
           detail: shortAddress(overview.gasWallet.address),
           icon: Flame
         },

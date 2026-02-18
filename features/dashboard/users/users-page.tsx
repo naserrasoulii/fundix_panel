@@ -175,7 +175,7 @@ export function UsersPage() {
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by id, username, email, role..."
+            placeholder="Search by username, email, role..."
             className="w-full sm:w-72"
           />
           <Button
@@ -240,9 +240,7 @@ export function UsersPage() {
                         </div>
                         <div className="leading-tight">
                           <p className="font-medium text-foreground">{user.username}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {user.email} • {user.id}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
                     </TableCell>
