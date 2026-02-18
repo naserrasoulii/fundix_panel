@@ -1,5 +1,9 @@
 import type {
+  AdminBlockchainSummary,
+  AdminDepositScanLog,
+  AdminHealthcheck,
   AdminPromotion,
+  AdminSweepLog,
   AdminTransaction,
   AdminTransactionType,
   AdminUser,
@@ -9,7 +13,11 @@ import type {
 } from "@/lib/admin-types";
 
 export type {
+  AdminBlockchainSummary,
+  AdminDepositScanLog,
+  AdminHealthcheck,
   AdminPromotion,
+  AdminSweepLog,
   AdminTransaction,
   AdminTransactionStatus,
   AdminTransactionType,
@@ -132,6 +140,79 @@ type BackendPromotionItem = {
   createdAt?: string;
 };
 
+type BackendHealthcheckItem = {
+  id?: string;
+  status?: string;
+  source?: string | null;
+  dbUp?: boolean;
+  emailReady?: boolean;
+  checks?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+  createdAt?: string;
+};
+
+type BackendDepositScanLogItem = {
+  id?: string;
+  network?: string;
+  reason?: string;
+  fromBlock?: number;
+  toBlock?: number;
+  plannedScanBlocks?: number;
+  scannedBlocks?: number;
+  detected?: number;
+  credited?: number;
+  latestBlock?: number;
+  safeTip?: number;
+  reorgDetected?: boolean;
+  createdAt?: string;
+};
+
+type BackendSweepLogItem = {
+  id?: string;
+  network?: string;
+  status?: string;
+  fromAddress?: string;
+  toAddress?: string;
+  tokenContract?: string;
+  userId?: string | null;
+  amount?: string | number;
+  txHash?: string | null;
+  gasTopupTxHash?: string | null;
+  sweepGasUsed?: string | number | null;
+  sweepGasFeeWei?: string | number | null;
+  topupGasUsed?: string | number | null;
+  topupGasFeeWei?: string | number | null;
+  errorMessage?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  user?: {
+    username?: string | null;
+    email?: string | null;
+  } | null;
+};
+
+type BackendBlockchainSummaryResponse = {
+  deposits?: {
+    creditedTotal?: string | number;
+    detectedTotal?: string | number;
+  };
+  sweeps?: {
+    statusCounts?: Record<string, unknown>;
+    inProgress?: number;
+    failed?: number;
+    unsweptWallets?: number;
+  };
+  gas?: {
+    sweepGasUsed?: string | number | null;
+    sweepGasFeeWei?: string | number | null;
+    sweepGasFeeBnb?: string | number | null;
+    topupGasUsed?: string | number | null;
+    topupGasFeeWei?: string | number | null;
+    topupGasFeeBnb?: string | number | null;
+  };
+};
+
 type UserRoleUpdateResult = {
   id: string;
   role: AdminUser["role"];
@@ -166,6 +247,28 @@ type ListPromotionsOptions = {
   status?: AdminPromotion["status"] | "all";
 };
 
+type ListHealthchecksOptions = {
+  page?: number;
+  limit?: number;
+  status?: string;
+  source?: string;
+};
+
+type ListDepositScanLogsOptions = {
+  page?: number;
+  limit?: number;
+  reason?: string;
+  network?: string;
+};
+
+type ListSweepLogsOptions = {
+  page?: number;
+  limit?: number;
+  status?: string;
+  network?: string;
+  userId?: string;
+};
+
 function normalizeString(value: unknown, fallback = "") {
   if (typeof value === "string") return value;
   if (typeof value === "number" && Number.isFinite(value)) return value.toString();
@@ -190,6 +293,11 @@ function normalizeCount(value: unknown) {
 function normalizeDate(value: unknown) {
   const raw = normalizeString(value);
   return raw || new Date(0).toISOString();
+}
+
+function normalizeNullableString(value: unknown) {
+  const normalized = normalizeString(value).trim();
+  return normalized ? normalized : null;
 }
 
 async function readPayload(res: Response) {
@@ -468,6 +576,69 @@ function mapPromotion(item: BackendPromotionItem): AdminPromotion {
   };
 }
 
+function mapHealthcheck(item: BackendHealthcheckItem): AdminHealthcheck {
+  return {
+    id: normalizeString(item.id),
+    status: normalizeString(item.status, "NOT_READY"),
+    source: normalizeNullableString(item.source),
+    dbUp: Boolean(item.dbUp),
+    emailReady: Boolean(item.emailReady),
+    checks:
+      item.checks && typeof item.checks === "object" && !Array.isArray(item.checks)
+        ? item.checks
+        : null,
+    errorMessage: normalizeNullableString(item.errorMessage),
+    createdAt: normalizeDate(item.createdAt),
+  };
+}
+
+function mapDepositScanLog(item: BackendDepositScanLogItem): AdminDepositScanLog {
+  return {
+    id: normalizeString(item.id),
+    network: normalizeString(item.network, "BSC"),
+    reason: normalizeString(item.reason, "UNKNOWN"),
+    fromBlock: normalizeCount(item.fromBlock),
+    toBlock: normalizeCount(item.toBlock),
+    plannedScanBlocks: normalizeCount(item.plannedScanBlocks),
+    scannedBlocks: normalizeCount(item.scannedBlocks),
+    detected: normalizeCount(item.detected),
+    credited: normalizeCount(item.credited),
+    latestBlock: normalizeCount(item.latestBlock),
+    safeTip: normalizeCount(item.safeTip),
+    reorgDetected: Boolean(item.reorgDetected),
+    createdAt: normalizeDate(item.createdAt),
+  };
+}
+
+function mapSweepLog(item: BackendSweepLogItem): AdminSweepLog {
+  const userId = normalizeNullableString(item.userId);
+  const username = normalizeString(item.user?.username);
+  const email = normalizeString(item.user?.email);
+  const userLabel = username || email || userId || "unknown";
+
+  return {
+    id: normalizeString(item.id),
+    network: normalizeString(item.network, "BSC"),
+    status: normalizeString(item.status, "TRANSFERRING"),
+    fromAddress: normalizeString(item.fromAddress),
+    toAddress: normalizeString(item.toAddress),
+    tokenContract: normalizeString(item.tokenContract),
+    userId,
+    userLabel,
+    amount: normalizeString(item.amount, "0"),
+    txHash: normalizeNullableString(item.txHash),
+    gasTopupTxHash: normalizeNullableString(item.gasTopupTxHash),
+    sweepGasUsed: normalizeNullableString(item.sweepGasUsed),
+    sweepGasFeeWei: normalizeNullableString(item.sweepGasFeeWei),
+    topupGasUsed: normalizeNullableString(item.topupGasUsed),
+    topupGasFeeWei: normalizeNullableString(item.topupGasFeeWei),
+    errorMessage: normalizeNullableString(item.errorMessage),
+    startedAt: normalizeNullableString(item.startedAt),
+    completedAt: normalizeNullableString(item.completedAt),
+    createdAt: normalizeDate(item.createdAt),
+  };
+}
+
 function mapDashboardWalletBalance(
   item: BackendDashboardWalletBalance | undefined,
   fallbackAsset: string,
@@ -502,6 +673,42 @@ export async function getDashboardOverview(): Promise<AdminDashboardOverview> {
     gasWallet: mapDashboardWalletBalance(data.gasWallet, "BNB", 18),
     usersCount: normalizeCount(data.usersCount),
     activePackagesCount: normalizeCount(data.activePackagesCount),
+  };
+}
+
+export async function getBlockchainSummary(): Promise<AdminBlockchainSummary> {
+  const data = await adminRequest<BackendBlockchainSummaryResponse>(
+    "/api/admin/blockchain/summary",
+  );
+
+  const statusCountsRaw = data.sweeps?.statusCounts ?? {};
+  const statusCounts = Object.entries(statusCountsRaw).reduce<Record<string, number>>(
+    (acc, [key, value]) => {
+      acc[key] = normalizeCount(value);
+      return acc;
+    },
+    {},
+  );
+
+  return {
+    deposits: {
+      creditedTotal: normalizeString(data.deposits?.creditedTotal, "0"),
+      detectedTotal: normalizeString(data.deposits?.detectedTotal, "0"),
+    },
+    sweeps: {
+      statusCounts,
+      inProgress: normalizeCount(data.sweeps?.inProgress),
+      failed: normalizeCount(data.sweeps?.failed),
+      unsweptWallets: normalizeCount(data.sweeps?.unsweptWallets),
+    },
+    gas: {
+      sweepGasUsed: normalizeNullableString(data.gas?.sweepGasUsed),
+      sweepGasFeeWei: normalizeNullableString(data.gas?.sweepGasFeeWei),
+      sweepGasFeeBnb: normalizeNullableString(data.gas?.sweepGasFeeBnb),
+      topupGasUsed: normalizeNullableString(data.gas?.topupGasUsed),
+      topupGasFeeWei: normalizeNullableString(data.gas?.topupGasFeeWei),
+      topupGasFeeBnb: normalizeNullableString(data.gas?.topupGasFeeBnb),
+    },
   };
 }
 
@@ -617,6 +824,75 @@ export async function listWithdrawRequests(
     `/api/admin/withdrawals?${query.toString()}`,
   );
   return toPaginatedResult(data, mapWithdrawal, page, limit);
+}
+
+export async function listHealthchecks(
+  options: ListHealthchecksOptions = {},
+): Promise<PaginatedResult<AdminHealthcheck>> {
+  const page = normalizePositiveInt(options.page, DEFAULT_PAGE);
+  const limit = normalizePositiveInt(options.limit, DEFAULT_LIMIT);
+  const query = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (options.status?.trim()) {
+    query.set("status", options.status.trim());
+  }
+  if (options.source?.trim()) {
+    query.set("source", options.source.trim());
+  }
+
+  const data = await adminRequest<BackendListResponse<BackendHealthcheckItem>>(
+    `/api/admin/healthchecks?${query.toString()}`,
+  );
+  return toPaginatedResult(data, mapHealthcheck, page, limit);
+}
+
+export async function listDepositScanLogs(
+  options: ListDepositScanLogsOptions = {},
+): Promise<PaginatedResult<AdminDepositScanLog>> {
+  const page = normalizePositiveInt(options.page, DEFAULT_PAGE);
+  const limit = normalizePositiveInt(options.limit, DEFAULT_LIMIT);
+  const query = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (options.reason?.trim()) {
+    query.set("reason", options.reason.trim());
+  }
+  if (options.network?.trim()) {
+    query.set("network", options.network.trim());
+  }
+
+  const data = await adminRequest<BackendListResponse<BackendDepositScanLogItem>>(
+    `/api/admin/deposits/scan-logs?${query.toString()}`,
+  );
+  return toPaginatedResult(data, mapDepositScanLog, page, limit);
+}
+
+export async function listSweepLogs(
+  options: ListSweepLogsOptions = {},
+): Promise<PaginatedResult<AdminSweepLog>> {
+  const page = normalizePositiveInt(options.page, DEFAULT_PAGE);
+  const limit = normalizePositiveInt(options.limit, DEFAULT_LIMIT);
+  const query = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (options.status?.trim()) {
+    query.set("status", options.status.trim());
+  }
+  if (options.network?.trim()) {
+    query.set("network", options.network.trim());
+  }
+  if (options.userId?.trim()) {
+    query.set("userId", options.userId.trim());
+  }
+
+  const data = await adminRequest<BackendListResponse<BackendSweepLogItem>>(
+    `/api/admin/deposits/sweep-logs?${query.toString()}`,
+  );
+  return toPaginatedResult(data, mapSweepLog, page, limit);
 }
 
 export async function approveWithdrawRequest(withdrawId: string) {

@@ -69,6 +69,76 @@ export type AdminPromotion = {
   status: PromotionStatus;
 };
 
+export type AdminHealthcheck = {
+  id: string;
+  status: string;
+  source: string | null;
+  dbUp: boolean;
+  emailReady: boolean;
+  checks: Record<string, unknown> | null;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export type AdminDepositScanLog = {
+  id: string;
+  network: string;
+  reason: string;
+  fromBlock: number;
+  toBlock: number;
+  plannedScanBlocks: number;
+  scannedBlocks: number;
+  detected: number;
+  credited: number;
+  latestBlock: number;
+  safeTip: number;
+  reorgDetected: boolean;
+  createdAt: string;
+};
+
+export type AdminSweepLog = {
+  id: string;
+  network: string;
+  status: string;
+  fromAddress: string;
+  toAddress: string;
+  tokenContract: string;
+  userId: string | null;
+  userLabel: string;
+  amount: string;
+  txHash: string | null;
+  gasTopupTxHash: string | null;
+  sweepGasUsed: string | null;
+  sweepGasFeeWei: string | null;
+  topupGasUsed: string | null;
+  topupGasFeeWei: string | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export type AdminBlockchainSummary = {
+  deposits: {
+    creditedTotal: string;
+    detectedTotal: string;
+  };
+  sweeps: {
+    statusCounts: Record<string, number>;
+    inProgress: number;
+    failed: number;
+    unsweptWallets: number;
+  };
+  gas: {
+    sweepGasUsed: string | null;
+    sweepGasFeeWei: string | null;
+    sweepGasFeeBnb: string | null;
+    topupGasUsed: string | null;
+    topupGasFeeWei: string | null;
+    topupGasFeeBnb: string | null;
+  };
+};
+
 export type CreatePromoDto = {
   title: string;
   description?: string | null;

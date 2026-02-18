@@ -23,6 +23,9 @@ async function logoutAndRedirect() {
     await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
     });
   } catch {}
 

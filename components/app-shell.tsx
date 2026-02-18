@@ -4,12 +4,15 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
   ArrowLeftRight,
   Bell,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   Megaphone,
   Menu,
+  RefreshCw,
   Search,
   Users,
   Wallet
@@ -27,6 +30,9 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Healthchecks", href: "/dashboard/healthchecks", icon: Activity },
+  { label: "Logs", href: "/dashboard/logs", icon: ClipboardList },
+  { label: "Sweep Logs", href: "/dashboard/sweep-logs", icon: RefreshCw },
   { label: "Users", href: "/dashboard/users", icon: Users },
   { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
   { label: "Withdrawals", href: "/dashboard/withdraws", icon: Wallet },
@@ -63,7 +69,7 @@ export function AppShell({ locale, children }: AppShellProps) {
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <Link href={`/${locale}/dashboard`} className="flex items-center gap-3">
+            <Link href={`/${locale}/dashboard`} className="flex items-center gap-3" prefetch={false}>
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 F
               </div>
@@ -91,7 +97,7 @@ export function AppShell({ locale, children }: AppShellProps) {
         </div>
       </header>
 
-      <div className="z-10 flex flex-1 items-start">
+      <div className="z-10 flex flex-1 items-start xl:gap-6">
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r bg-background p-6 transition xl:inset-y-auto xl:left-auto xl:sticky xl:top-16 xl:h-[calc(100dvh-4rem)] xl:w-64 xl:translate-x-0 xl:rounded-none xl:overflow-y-auto",
@@ -121,6 +127,7 @@ export function AppShell({ locale, children }: AppShellProps) {
                 <Link
                   key={item.label}
                   href={item.href}
+                  prefetch={false}
                   className={cn(
                     "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition",
                     isActive
@@ -169,7 +176,9 @@ export function AppShell({ locale, children }: AppShellProps) {
           />
           ) : null}
 
-        <main className="min-w-0 flex-1 space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">{children}</main>
+        <main className="min-w-0 flex-1 px-4 pb-8 pt-6 sm:px-6 sm:pb-10 sm:pt-8 lg:px-8 xl:pr-10">
+          <div className="mx-auto w-full max-w-[1400px] space-y-6">{children}</div>
+        </main>
       </div>
     </div>
   );
