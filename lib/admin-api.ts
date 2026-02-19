@@ -312,6 +312,14 @@ type ListSweepLogsOptions = {
   userId?: string;
 };
 
+type ListGasLogsOptions = {
+  page?: number;
+  limit?: number;
+  status?: string;
+  network?: string;
+  userId?: string;
+};
+
 type ListAuditLogsOptions = {
   page?: number;
   limit?: number;
@@ -1001,6 +1009,31 @@ export async function listSweepLogs(
 
   const data = await adminRequest<BackendListResponse<BackendSweepLogItem>>(
     `/api/admin/deposits/sweep-logs?${query.toString()}`,
+  );
+  return toPaginatedResult(data, mapSweepLog, page, limit);
+}
+
+export async function listGasLogs(
+  options: ListGasLogsOptions = {},
+): Promise<PaginatedResult<AdminSweepLog>> {
+  const page = normalizePositiveInt(options.page, DEFAULT_PAGE);
+  const limit = normalizePositiveInt(options.limit, DEFAULT_LIMIT);
+  const query = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (options.status?.trim()) {
+    query.set("status", options.status.trim());
+  }
+  if (options.network?.trim()) {
+    query.set("network", options.network.trim());
+  }
+  if (options.userId?.trim()) {
+    query.set("userId", options.userId.trim());
+  }
+
+  const data = await adminRequest<BackendListResponse<BackendSweepLogItem>>(
+    `/api/admin/deposits/gas-logs?${query.toString()}`,
   );
   return toPaginatedResult(data, mapSweepLog, page, limit);
 }

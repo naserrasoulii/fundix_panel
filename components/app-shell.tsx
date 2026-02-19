@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   Bell,
   ClipboardList,
+  Flame,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
   },
   { label: "Error Logs", href: "/dashboard/error-logs", icon: AlertTriangle },
   { label: "Sweep Logs", href: "/dashboard/sweep-logs", icon: RefreshCw },
+  { label: "Gas Logs", href: "/dashboard/gas-logs", icon: Flame },
   { label: "Users", href: "/dashboard/users", icon: Users },
   {
     label: "Transactions",

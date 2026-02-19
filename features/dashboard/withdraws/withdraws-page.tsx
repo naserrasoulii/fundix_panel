@@ -303,7 +303,7 @@ export function WithdrawsPage() {
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <p className="text-xs text-muted-foreground">Address</p>
-                  <p className="break-all font-mono text-xs text-muted-foreground">
+                  <p className="break-all whitespace-normal font-mono text-xs text-muted-foreground">
                     {shortHash(wd.address, 10, 6)}
                   </p>
                 </div>
@@ -386,7 +386,7 @@ export function WithdrawsPage() {
                   <TableCell className="px-4 py-4">{wd.asset}</TableCell>
                   <TableCell className="px-4 py-4 font-medium">{formatUsd(wd.amountUsd)}</TableCell>
                   <TableCell className="px-4 py-4 text-muted-foreground">{wd.network}</TableCell>
-                  <TableCell className="px-4 py-4 font-mono text-xs text-muted-foreground">
+                  <TableCell className="px-4 py-4 break-all whitespace-normal font-mono text-xs text-muted-foreground">
                     {shortHash(wd.address, 10, 6)}
                   </TableCell>
                   <TableCell className="px-4 py-4 text-muted-foreground">
