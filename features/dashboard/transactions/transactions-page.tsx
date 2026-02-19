@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { listTransactions, type AdminTransaction } from "@/lib/admin-api";
 import { formatDateTime, formatUsd, shortHash } from "@/lib/formatters";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ function typeVariant(type: AdminTransaction["type"]) {
 
 export function TransactionsPage() {
   const [search, setSearch] = React.useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = React.useState(1);
   const [statusFilter, setStatusFilter] = React.useState<AdminTransaction["status"] | "all">(
     "all"
@@ -61,7 +63,7 @@ export function TransactionsPage() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, search]);
+  }, [statusFilter, debouncedSearch]);
 
   const transactionsQuery = useQuery({
     queryKey: ["admin", "transactions", { page, statusFilter }],
@@ -86,7 +88,7 @@ export function TransactionsPage() {
 
   const filtered = React.useMemo(() => {
     const transactions = transactionsQuery.data?.items ?? [];
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
 
     return transactions.filter((tx) => {
       if (statusFilter !== "all" && tx.status !== statusFilter) {
@@ -104,7 +106,7 @@ export function TransactionsPage() {
         (tx.txHash ? tx.txHash.toLowerCase().includes(q) : false)
       );
     });
-  }, [transactionsQuery.data?.items, search, statusFilter]);
+  }, [transactionsQuery.data?.items, debouncedSearch, statusFilter]);
 
   return (
     <div className="space-y-6">

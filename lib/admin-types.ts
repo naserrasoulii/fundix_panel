@@ -1,5 +1,5 @@
 export type AdminUserStatus = "active" | "suspended" | "blocked";
-export type AdminUserRole = "admin" | "user";
+export type AdminUserRole = "admin" | "finance-admin" | "user";
 export type AdminKycStatus = "unverified" | "pending" | "verified" | "rejected";
 
 export type AdminUser = {
@@ -53,7 +53,7 @@ export type AdminWithdrawRequest = {
   rejectReason?: string | null;
 };
 
-export type PromotionStatus = "scheduled" | "active" | "ended";
+export type PromotionStatus = "draft" | "active" | "deactive" | "ended";
 
 export type AdminPromotion = {
   id: string;
@@ -118,6 +118,19 @@ export type AdminSweepLog = {
   createdAt: string;
 };
 
+export type AdminAuditLog = {
+  id: string;
+  actorUserId: string | null;
+  targetUserId: string | null;
+  actorLabel: string;
+  targetLabel: string | null;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+};
+
 export type AdminBlockchainSummary = {
   deposits: {
     creditedTotal: string;
@@ -150,10 +163,37 @@ export type CreatePromoDto = {
   maxGrantsPerUser?: number;
 };
 
+export type UpdatePromoDto = {
+  title?: string;
+  description?: string | null;
+  startAt?: string;
+  endAt?: string | null;
+  status?: PromotionStatus;
+  minDirectReferrals?: number;
+  minReferralDepositUsd?: string;
+  rewardAmountUsd?: string;
+  maxGrantsPerUser?: number;
+};
+
 export type CreateUserNotificationPayload = {
   title: string;
   message: string;
   level?: "info" | "warning" | "danger";
+};
+
+export type AdminManualDepositPayload = {
+  amount: string;
+  note?: string;
+};
+
+export type AdminManualDepositResult = {
+  userId: string;
+  walletBalance: string;
+  transactionId: string;
+  amount: string;
+  balanceBefore: string;
+  balanceAfter: string;
+  createdAt: string;
 };
 
 export type UpdateUserRolePayload = {

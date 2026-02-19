@@ -1,5 +1,8 @@
 import type {
+  AdminAuditLog,
   AdminBlockchainSummary,
+  AdminManualDepositPayload,
+  AdminManualDepositResult,
   AdminDepositScanLog,
   AdminHealthcheck,
   AdminPromotion,
@@ -10,10 +13,14 @@ import type {
   AdminWithdrawRequest,
   CreatePromoDto,
   CreateUserNotificationPayload,
+  UpdatePromoDto,
 } from "@/lib/admin-types";
 
 export type {
+  AdminAuditLog,
   AdminBlockchainSummary,
+  AdminManualDepositPayload,
+  AdminManualDepositResult,
   AdminDepositScanLog,
   AdminHealthcheck,
   AdminPromotion,
@@ -27,6 +34,7 @@ export type {
   AdminWithdrawRequest,
   CreatePromoDto,
   CreateUserNotificationPayload,
+  UpdatePromoDto,
 } from "@/lib/admin-types";
 
 export const ADMIN_API_MODE = "api" as const;
@@ -194,6 +202,27 @@ type BackendSweepLogItem = {
   } | null;
 };
 
+type BackendAuditLogItem = {
+  id?: string;
+  actorUserId?: string | null;
+  targetUserId?: string | null;
+  action?: string;
+  entityType?: string | null;
+  entityId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt?: string;
+  actorUser?: {
+    id?: string;
+    username?: string | null;
+    email?: string | null;
+  } | null;
+  targetUser?: {
+    id?: string;
+    username?: string | null;
+    email?: string | null;
+  } | null;
+};
+
 type BackendBlockchainSummaryResponse = {
   deposits?: {
     creditedTotal?: string | number;
@@ -223,6 +252,18 @@ type UserRoleUpdateResult = {
 type UserStatusUpdateResult = {
   id: string;
   status: AdminUser["status"];
+};
+
+type BackendManualDepositResponse = {
+  userId?: string;
+  walletBalance?: string | number;
+  transaction?: {
+    id?: string;
+    amount?: string | number;
+    balanceBefore?: string | number;
+    balanceAfter?: string | number;
+    createdAt?: string;
+  } | null;
 };
 
 type ListUsersOptions = {
@@ -269,6 +310,15 @@ type ListSweepLogsOptions = {
   status?: string;
   network?: string;
   userId?: string;
+};
+
+type ListAuditLogsOptions = {
+  page?: number;
+  limit?: number;
+  action?: string;
+  actorUserId?: string;
+  targetUserId?: string;
+  entityType?: string;
 };
 
 function normalizeString(value: unknown, fallback = "") {
@@ -397,13 +447,23 @@ function toBackendWithdrawStatus(status: AdminWithdrawRequest["status"] | "all" 
 function toBackendPromotionStatus(status: AdminPromotion["status"] | "all" | undefined) {
   if (!status || status === "all") return undefined;
   if (status === "active") return "ACTIVE";
-  if (status === "scheduled") return "DRAFT";
+  if (status === "draft") return "DRAFT";
+  if (status === "deactive") return "PAUSED";
   return "ENDED";
+}
+
+function toBackendPromotionStatusForUpdate(status: AdminPromotion["status"] | undefined) {
+  if (!status) return undefined;
+  if (status === "active") return "ACTIVE";
+  if (status === "draft") return "DRAFT";
+  if (status === "deactive") return "PAUSED";
+  return undefined;
 }
 
 function mapUserRole(rawRole: string): AdminUser["role"] {
   const role = rawRole.toUpperCase();
-  if (role === "ADMIN" || role === "FINANCE_ADMIN") return "admin";
+  if (role === "FINANCE_ADMIN") return "finance-admin";
+  if (role === "ADMIN") return "admin";
   return "user";
 }
 
@@ -425,16 +485,18 @@ function mapPromotionStatus(
   startAt: string,
   endAt: string | null,
 ): AdminPromotion["status"] {
+  const now = Date.now();
+  const end = endAt ? new Date(endAt).valueOf() : Number.POSITIVE_INFINITY;
+  if (!Number.isNaN(end) && now >= end) return "ended";
+
   const status = rawStatus.toUpperCase();
   if (status === "ACTIVE") return "active";
-  if (status === "PAUSED" || status === "ENDED") return "ended";
-  if (status === "DRAFT") return "scheduled";
+  if (status === "PAUSED") return "deactive";
+  if (status === "ENDED") return "ended";
+  if (status === "DRAFT") return "draft";
 
-  const now = Date.now();
   const start = new Date(startAt).valueOf();
-  const end = endAt ? new Date(endAt).valueOf() : Number.POSITIVE_INFINITY;
-  if (!Number.isNaN(start) && now < start) return "scheduled";
-  if (!Number.isNaN(end) && now > end) return "ended";
+  if (!Number.isNaN(start) && now < start) return "draft";
   return "active";
 }
 
@@ -475,22 +537,6 @@ function mapWithdrawStatus(rawStatus: string): AdminWithdrawRequest["status"] {
     default:
       return "pending";
   }
-}
-
-function inferNetwork(address: string) {
-  if (!address || address === "—") return "Unknown";
-  if (address.startsWith("0x")) return "Ethereum";
-  if (address.startsWith("T")) return "TRC20";
-  if (address.startsWith("bc1") || address.startsWith("1") || address.startsWith("3")) {
-    return "Bitcoin";
-  }
-  return "Unknown";
-}
-
-function inferAsset(network: string) {
-  if (network === "Bitcoin") return "BTC";
-  if (network === "Ethereum") return "ETH";
-  return "USDT";
 }
 
 function mapUser(item: BackendUserItem): AdminUser {
@@ -537,14 +583,13 @@ function mapWithdrawal(item: BackendWithdrawalItem): AdminWithdrawRequest {
   const userLabel = username || email || userId || "unknown";
   const status = mapWithdrawStatus(normalizeString(item.status, "PENDING"));
   const address = normalizeString(item.destinationAddress, "—");
-  const network = inferNetwork(address);
 
   return {
     id: normalizeString(item.id),
     userId,
     userLabel,
-    asset: inferAsset(network),
-    network,
+    asset: "USDT",
+    network: "BEP20",
     amount,
     amountUsd: amount,
     address,
@@ -555,7 +600,7 @@ function mapWithdrawal(item: BackendWithdrawalItem): AdminWithdrawRequest {
       normalizeString(item.approvedAt) ||
       normalizeString(item.rejectedAt) ||
       null,
-    rejectReason: status === "rejected" ? normalizeString(item.note) || null : null,
+    rejectReason: null,
   };
 }
 
@@ -637,6 +682,33 @@ function mapSweepLog(item: BackendSweepLogItem): AdminSweepLog {
     errorMessage: normalizeNullableString(item.errorMessage),
     startedAt: normalizeNullableString(item.startedAt),
     completedAt: normalizeNullableString(item.completedAt),
+    createdAt: normalizeDate(item.createdAt),
+  };
+}
+
+function mapAuditLog(item: BackendAuditLogItem): AdminAuditLog {
+  const actorUserId = normalizeNullableString(item.actorUserId);
+  const targetUserId = normalizeNullableString(item.targetUserId);
+  const actorUsername = normalizeString(item.actorUser?.username);
+  const actorEmail = normalizeString(item.actorUser?.email);
+  const targetUsername = normalizeString(item.targetUser?.username);
+  const targetEmail = normalizeString(item.targetUser?.email);
+  const actorLabel = actorUsername || actorEmail || actorUserId || "system";
+  const targetLabel = targetUsername || targetEmail || targetUserId || null;
+
+  return {
+    id: normalizeString(item.id),
+    actorUserId,
+    targetUserId,
+    actorLabel,
+    targetLabel,
+    action: normalizeString(item.action, "UNKNOWN_ACTION"),
+    entityType: normalizeNullableString(item.entityType),
+    entityId: normalizeNullableString(item.entityId),
+    metadata:
+      item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata)
+        ? item.metadata
+        : null,
     createdAt: normalizeDate(item.createdAt),
   };
 }
@@ -750,11 +822,47 @@ export async function sendUserNotification(
   return { ok: true } as const;
 }
 
+export async function createManualDeposit(
+  userId: string,
+  payload: AdminManualDepositPayload,
+): Promise<AdminManualDepositResult> {
+  const amount = payload.amount.trim();
+  if (!amount) {
+    throw new Error("Amount is required.");
+  }
+
+  const note = payload.note?.trim();
+  const data = await adminRequest<BackendManualDepositResponse>(
+    `/api/admin/users/${encodeURIComponent(userId)}/manual-deposit`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        amount,
+        ...(note ? { note } : {}),
+      }),
+    },
+  );
+
+  const transaction = data.transaction ?? {};
+  const walletBalance = normalizeString(data.walletBalance, "0");
+
+  return {
+    userId: normalizeString(data.userId, userId),
+    walletBalance,
+    transactionId: normalizeString(transaction.id),
+    amount: normalizeString(transaction.amount, amount),
+    balanceBefore: normalizeString(transaction.balanceBefore, "0"),
+    balanceAfter: normalizeString(transaction.balanceAfter, walletBalance),
+    createdAt: normalizeDate(transaction.createdAt),
+  };
+}
+
 export async function updateUserRole(
   userId: string,
   role: AdminUser["role"],
 ): Promise<UserRoleUpdateResult> {
-  const backendRole = role === "admin" ? "ADMIN" : "USER";
+  const backendRole =
+    role === "finance-admin" ? "FINANCE_ADMIN" : role === "admin" ? "ADMIN" : "USER";
   const data = await adminRequest<{ id?: string; role?: string }>(
     `/api/admin/users/${encodeURIComponent(userId)}/role`,
     {
@@ -897,6 +1005,34 @@ export async function listSweepLogs(
   return toPaginatedResult(data, mapSweepLog, page, limit);
 }
 
+export async function listAuditLogs(
+  options: ListAuditLogsOptions = {},
+): Promise<PaginatedResult<AdminAuditLog>> {
+  const page = normalizePositiveInt(options.page, DEFAULT_PAGE);
+  const limit = normalizePositiveInt(options.limit, DEFAULT_LIMIT);
+  const query = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (options.action?.trim()) {
+    query.set("action", options.action.trim());
+  }
+  if (options.actorUserId?.trim()) {
+    query.set("actorUserId", options.actorUserId.trim());
+  }
+  if (options.targetUserId?.trim()) {
+    query.set("targetUserId", options.targetUserId.trim());
+  }
+  if (options.entityType?.trim()) {
+    query.set("entityType", options.entityType.trim());
+  }
+
+  const data = await adminRequest<BackendListResponse<BackendAuditLogItem>>(
+    `/api/admin/audit-logs?${query.toString()}`,
+  );
+  return toPaginatedResult(data, mapAuditLog, page, limit);
+}
+
 export async function approveWithdrawRequest(withdrawId: string) {
   return adminRequest<BackendWithdrawalItem>(
     `/api/admin/withdrawals/${encodeURIComponent(withdrawId)}/approve`,
@@ -942,5 +1078,60 @@ export async function createPromotion(dto: CreatePromoDto): Promise<AdminPromoti
       rewardType: "WALLET_CREDIT",
     }),
   });
+  return mapPromotion(data);
+}
+
+export async function getPromotion(promoId: string): Promise<AdminPromotion> {
+  const data = await adminRequest<BackendPromotionItem>(
+    `/api/admin/promos/${encodeURIComponent(promoId)}`,
+  );
+  return mapPromotion(data);
+}
+
+export async function updatePromotion(
+  promoId: string,
+  dto: UpdatePromoDto,
+): Promise<AdminPromotion> {
+  const backendStatus = toBackendPromotionStatusForUpdate(dto.status);
+  const data = await adminRequest<BackendPromotionItem>(
+    `/api/admin/promos/${encodeURIComponent(promoId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        ...dto,
+        ...(backendStatus ? { status: backendStatus } : {}),
+      }),
+    },
+  );
+  return mapPromotion(data);
+}
+
+export async function activatePromotion(promoId: string): Promise<AdminPromotion> {
+  const data = await adminRequest<BackendPromotionItem>(
+    `/api/admin/promos/${encodeURIComponent(promoId)}/activate`,
+    {
+      method: "POST",
+    },
+  );
+  return mapPromotion(data);
+}
+
+export async function deactivatePromotion(promoId: string): Promise<AdminPromotion> {
+  const data = await adminRequest<BackendPromotionItem>(
+    `/api/admin/promos/${encodeURIComponent(promoId)}/pause`,
+    {
+      method: "POST",
+    },
+  );
+  return mapPromotion(data);
+}
+
+export async function endPromotion(promoId: string): Promise<AdminPromotion> {
+  const data = await adminRequest<BackendPromotionItem>(
+    `/api/admin/promos/${encodeURIComponent(promoId)}/end`,
+    {
+      method: "POST",
+    },
+  );
   return mapPromotion(data);
 }

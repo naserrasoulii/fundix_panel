@@ -32,11 +32,11 @@ function promoStatus(promo: Pick<AdminPromotion, "startAt" | "endAt">) {
     : Number.POSITIVE_INFINITY;
 
   if (Number.isNaN(start) || Number.isNaN(end)) {
-    return "scheduled" as const;
+    return "draft" as const;
   }
 
   if (now < start) {
-    return "scheduled" as const;
+    return "draft" as const;
   }
   if (now > end) {
     return "ended" as const;
@@ -224,7 +224,7 @@ const mockState: {
       rewardAmountUsd: "25",
       maxGrantsPerUser: 1,
       createdAt: "2026-02-05T11:00:00.000Z",
-      status: "scheduled",
+      status: "draft",
     },
   ],
   notifications: [],
@@ -346,7 +346,7 @@ export const mockAdminApi = {
       rewardAmountUsd: dto.rewardAmountUsd,
       maxGrantsPerUser: dto.maxGrantsPerUser,
       createdAt: nowIso(),
-      status: promoStatus(dto),
+      status: "draft",
     };
     mockState.promotions.unshift(created);
     return created;

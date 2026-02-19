@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
@@ -9,6 +11,7 @@ import {
   type AdminUser
 } from "@/lib/admin-api";
 import { formatDateTime, formatUsd } from "@/lib/formatters";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,15 +66,25 @@ function statusLabel(status: AdminUser["status"]) {
 }
 
 function roleBadge(role: AdminUser["role"]) {
-  return role === "admin" ? "outline" : "muted";
+  return role === "user" ? "muted" : "outline";
+}
+
+function roleLabel(role: AdminUser["role"]) {
+  if (role === "finance-admin") {
+    return "finance admin";
+  }
+  return role;
 }
 
 export function UsersPage() {
+  const params = useParams<{ locale: string }>();
+  const locale = params?.locale ?? "en";
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [flash, setFlash] = React.useState<string | null>(null);
   const [selectedUser, setSelectedUser] = React.useState<AdminUser | null>(null);
   const [notifyOpen, setNotifyOpen] = React.useState(false);
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [draft, setDraft] = React.useState<NotificationDraft>({
     title: "",
     message: "",
@@ -80,11 +93,12 @@ export function UsersPage() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [debouncedSearch]);
 
+  const normalizedSearch = debouncedSearch.trim();
   const usersQueryKey = React.useMemo(
-    () => ["admin", "users", page] as const,
-    [page]
+    () => ["admin", "users", { page, search: normalizedSearch }] as const,
+    [page, normalizedSearch]
   );
 
   const usersQuery = useQuery({
@@ -92,7 +106,8 @@ export function UsersPage() {
     queryFn: () =>
       listUsers({
         page,
-        limit: PAGE_SIZE
+        limit: PAGE_SIZE,
+        search: normalizedSearch || undefined
       })
   });
 
@@ -134,23 +149,7 @@ export function UsersPage() {
     }
   }, [page, totalPages]);
 
-  const filteredUsers = React.useMemo(() => {
-    const users = usersQuery.data?.items ?? [];
-    const q = search.trim().toLowerCase();
-    if (!q) {
-      return users;
-    }
-
-    return users.filter((user) => {
-      return (
-        user.id.toLowerCase().includes(q) ||
-        user.username.toLowerCase().includes(q) ||
-        user.email.toLowerCase().includes(q) ||
-        user.role.toLowerCase().includes(q) ||
-        statusLabel(user.status).toLowerCase().includes(q)
-      );
-    });
-  }, [usersQuery.data?.items, search]);
+  const users = usersQuery.data?.items ?? [];
 
   const canSend =
     Boolean(selectedUser) &&
@@ -175,7 +174,7 @@ export function UsersPage() {
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by username, email, role..."
+            placeholder="Search by username or email..."
             className="w-full sm:w-72"
           />
           <Button
@@ -224,14 +223,14 @@ export function UsersPage() {
                     Failed to load users. Check API connectivity.
                   </TableCell>
                 </TableRow>
-              ) : filteredUsers.length === 0 ? (
+              ) : users.length === 0 ? (
                 <TableRow>
                   <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={7}>
                     No users found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user) => (
+                users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="px-4 py-4">
                       <div className="flex items-center gap-3">
@@ -246,7 +245,7 @@ export function UsersPage() {
                     </TableCell>
                     <TableCell className="px-4 py-4">
                       <Badge variant={roleBadge(user.role)} className="capitalize">
-                        {user.role}
+                        {roleLabel(user.role)}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-4">
@@ -260,18 +259,25 @@ export function UsersPage() {
                       {formatDateTime(user.createdAt)}
                     </TableCell>
                     <TableCell className="px-4 py-4 text-right">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setNotifyOpen(true);
-                          setDraft({ title: "", message: "", level: "info" });
-                        }}
-                      >
-                        Notify
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" size="sm" variant="outline" asChild>
+                          <Link href={`/${locale}/dashboard/users/${user.id}/manual-deposit`}>
+                            Manual deposit
+                          </Link>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setNotifyOpen(true);
+                            setDraft({ title: "", message: "", level: "info" });
+                          }}
+                        >
+                          Notify
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

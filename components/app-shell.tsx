@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  AlertTriangle,
   ArrowLeftRight,
   Bell,
   ClipboardList,
@@ -14,8 +15,9 @@ import {
   Menu,
   RefreshCw,
   Search,
+  Shield,
   Users,
-  Wallet
+  Wallet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,11 +34,21 @@ const navItems: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Healthchecks", href: "/dashboard/healthchecks", icon: Activity },
   { label: "Logs", href: "/dashboard/logs", icon: ClipboardList },
+  {
+    label: "Admin Activity",
+    href: "/dashboard/admin-activity-logs",
+    icon: Shield,
+  },
+  { label: "Error Logs", href: "/dashboard/error-logs", icon: AlertTriangle },
   { label: "Sweep Logs", href: "/dashboard/sweep-logs", icon: RefreshCw },
   { label: "Users", href: "/dashboard/users", icon: Users },
-  { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
+  {
+    label: "Transactions",
+    href: "/dashboard/transactions",
+    icon: ArrowLeftRight,
+  },
   { label: "Withdrawals", href: "/dashboard/withdraws", icon: Wallet },
-  { label: "Promotions", href: "/dashboard/promote", icon: Megaphone }
+  { label: "Promotions", href: "/dashboard/promote", icon: Megaphone },
 ];
 
 type AppShellProps = {
@@ -51,7 +63,7 @@ export function AppShell({ locale, children }: AppShellProps) {
   const links = navItems.map((item) => ({
     ...item,
     href: `/${locale}${item.href}`,
-    exact: item.href === "/dashboard"
+    exact: item.href === "/dashboard",
   }));
 
   return (
@@ -69,7 +81,11 @@ export function AppShell({ locale, children }: AppShellProps) {
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <Link href={`/${locale}/dashboard`} className="flex items-center gap-3" prefetch={false}>
+            <Link
+              href={`/${locale}/dashboard`}
+              className="flex items-center gap-3"
+              prefetch={false}
+            >
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 F
               </div>
@@ -86,7 +102,12 @@ export function AppShell({ locale, children }: AppShellProps) {
               <Search className="h-3.5 w-3.5" />
               Search users, tx, withdrawals...
             </div>
-            <Button variant="outline" size="icon" className="rounded-full" aria-label="Notifications">
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              aria-label="Notifications"
+            >
               <Bell className="h-4 w-4" />
             </Button>
             <Button variant="secondary" className="hidden sm:inline-flex">
@@ -101,27 +122,28 @@ export function AppShell({ locale, children }: AppShellProps) {
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r bg-background p-6 transition xl:inset-y-auto xl:left-auto xl:sticky xl:top-16 xl:h-[calc(100dvh-4rem)] xl:w-64 xl:translate-x-0 xl:rounded-none xl:overflow-y-auto",
-            isOpen && "translate-x-0"
+            isOpen && "translate-x-0",
           )}
         >
           <div className="mb-4 flex items-center justify-between xl:hidden">
-            <p className="text-xs font-medium text-muted-foreground">Navigation</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsOpen(false)}
-            >
+            <p className="text-xs font-medium text-muted-foreground">
+              Navigation
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
               Close
             </Button>
           </div>
           <div className="mb-4 hidden xl:block">
-            <p className="text-xs font-medium text-muted-foreground">Navigation</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              Navigation
+            </p>
           </div>
           <nav className="space-y-1">
             {links.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (!item.exact && (pathname?.startsWith(`${item.href}/`) ?? false));
+                (!item.exact &&
+                  (pathname?.startsWith(`${item.href}/`) ?? false));
 
               return (
                 <Link
@@ -132,7 +154,7 @@ export function AppShell({ locale, children }: AppShellProps) {
                     "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition",
                     isActive
                       ? "bg-accent text-accent-foreground"
-                      : "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
+                      : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
                   )}
                   onClick={() => setIsOpen(false)}
                 >
@@ -140,12 +162,13 @@ export function AppShell({ locale, children }: AppShellProps) {
                     <item.icon
                       className={cn(
                         "h-4 w-4",
-                        isActive ? "text-accent-foreground" : "text-muted-foreground"
+                        isActive
+                          ? "text-accent-foreground"
+                          : "text-muted-foreground",
                       )}
                     />
                     {item.label}
                   </span>
-                  <span className="text-xs text-muted-foreground">↗</span>
                 </Link>
               );
             })}
@@ -174,10 +197,12 @@ export function AppShell({ locale, children }: AppShellProps) {
             onClick={() => setIsOpen(false)}
             aria-label="Close navigation"
           />
-          ) : null}
+        ) : null}
 
         <main className="min-w-0 flex-1 px-4 pb-8 pt-6 sm:px-6 sm:pb-10 sm:pt-8 lg:px-8 xl:pr-10">
-          <div className="mx-auto w-full max-w-[1400px] space-y-6">{children}</div>
+          <div className="mx-auto w-full max-w-[1400px] space-y-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>

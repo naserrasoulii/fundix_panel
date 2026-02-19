@@ -3,10 +3,18 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Swal from "sweetalert2";
 
-import { listPromotions, type AdminPromotion } from "@/lib/admin-api";
+import {
+  activatePromotion,
+  deactivatePromotion,
+  endPromotion,
+  listPromotions,
+  type AdminPromotion
+} from "@/lib/admin-api";
 import { formatDateTime, formatUsd } from "@/lib/formatters";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +40,10 @@ function statusVariant(status: AdminPromotion["status"]) {
   switch (status) {
     case "active":
       return "success";
-    case "scheduled":
+    case "draft":
       return "warning";
+    case "deactive":
+      return "danger";
     case "ended":
       return "muted";
     default:
@@ -44,13 +54,15 @@ function statusVariant(status: AdminPromotion["status"]) {
 export function PromotionsPage() {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale ?? "en";
+  const queryClient = useQueryClient();
   const [search, setSearch] = React.useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = React.useState(1);
   const [statusFilter, setStatusFilter] = React.useState<AdminPromotion["status"] | "all">("all");
 
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, search]);
+  }, [statusFilter, debouncedSearch]);
 
   const promotionsQuery = useQuery({
     queryKey: ["admin", "promotions", { page, statusFilter }],
@@ -61,6 +73,137 @@ export function PromotionsPage() {
         status: statusFilter
       })
   });
+
+  const activateMutation = useMutation({
+    mutationFn: (promoId: string) => activatePromotion(promoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "promotions"] });
+    }
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (promoId: string) => deactivatePromotion(promoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "promotions"] });
+    }
+  });
+
+  const endMutation = useMutation({
+    mutationFn: (promoId: string) => endPromotion(promoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "promotions"] });
+    }
+  });
+
+  const actionsBusy =
+    activateMutation.isPending || deactivateMutation.isPending || endMutation.isPending;
+
+  async function runPromotionAction(
+    promo: AdminPromotion,
+    action: "approve" | "deactive" | "end",
+  ) {
+    const actionPastTense =
+      action === "approve" ? "approved" : action === "deactive" ? "deactivated" : "ended";
+
+    const title =
+      action === "approve"
+        ? "Approve promotion?"
+        : action === "deactive"
+          ? "Deactivate promotion?"
+          : "End promotion?";
+
+    const text =
+      action === "approve"
+        ? `This will activate "${promo.title}" for users.`
+        : action === "deactive"
+          ? `This will stop "${promo.title}" until reactivated.`
+          : `This will permanently end "${promo.title}" and lock editing.`;
+
+    const confirmResult = await Swal.fire({
+      title,
+      text,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, continue",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+    });
+
+    if (!confirmResult.isConfirmed) {
+      return;
+    }
+
+    try {
+      if (action === "approve") {
+        await activateMutation.mutateAsync(promo.id);
+      } else if (action === "deactive") {
+        await deactivateMutation.mutateAsync(promo.id);
+      } else {
+        await endMutation.mutateAsync(promo.id);
+      }
+
+      await Swal.fire({
+        title: "Promotion updated",
+        text: `Promotion "${promo.title}" was ${actionPastTense} successfully.`,
+        icon: "success",
+        timer: 1400,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update promotion.";
+      await Swal.fire({
+        title: "Action failed",
+        text: message,
+        icon: "error",
+      });
+    }
+  }
+
+  function renderPromoActions(promo: AdminPromotion) {
+    if (promo.status === "ended") {
+      return <span className="text-xs text-muted-foreground">Locked</span>;
+    }
+
+    return (
+      <>
+        <Button asChild size="sm" variant="outline">
+          <Link href={`/${locale}/dashboard/promote/${encodeURIComponent(promo.id)}/edit`}>
+            Edit
+          </Link>
+        </Button>
+        {promo.status === "active" ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => void runPromotionAction(promo, "deactive")}
+            disabled={actionsBusy}
+          >
+            Deactive
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void runPromotionAction(promo, "approve")}
+            disabled={actionsBusy}
+          >
+            Approve
+          </Button>
+        )}
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          onClick={() => void runPromotionAction(promo, "end")}
+          disabled={actionsBusy}
+        >
+          End
+        </Button>
+      </>
+    );
+  }
 
   const total = promotionsQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -75,7 +218,7 @@ export function PromotionsPage() {
 
   const filtered = React.useMemo(() => {
     const promotions = promotionsQuery.data?.items ?? [];
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
 
     return promotions.filter((promo) => {
       if (statusFilter !== "all" && promo.status !== statusFilter) {
@@ -90,7 +233,7 @@ export function PromotionsPage() {
         promo.status.toLowerCase().includes(q)
       );
     });
-  }, [promotionsQuery.data?.items, search, statusFilter]);
+  }, [promotionsQuery.data?.items, debouncedSearch, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -119,8 +262,9 @@ export function PromotionsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="deactive">Deactive</SelectItem>
               <SelectItem value="ended">Ended</SelectItem>
             </SelectContent>
           </Select>
@@ -187,6 +331,11 @@ export function PromotionsPage() {
                   </p>
                 </div>
               </div>
+              <div className="mt-4 flex justify-end">
+                <div className="flex items-center gap-2">
+                  {renderPromoActions(promo)}
+                </div>
+              </div>
             </div>
           ))
         )}
@@ -204,26 +353,27 @@ export function PromotionsPage() {
               <TableHead className="px-4 py-3 font-medium">Starts</TableHead>
               <TableHead className="px-4 py-3 font-medium">Ends</TableHead>
               <TableHead className="px-4 py-3 font-medium">Created</TableHead>
+              <TableHead className="px-4 py-3 font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {promotionsQuery.isLoading ? (
               Array.from({ length: 6 }).map((_, index) => (
                 <TableRow key={index}>
-                  <TableCell className="px-4 py-4" colSpan={8}>
+                  <TableCell className="px-4 py-4" colSpan={9}>
                     <div className="h-5 w-full animate-pulse rounded bg-muted" />
                   </TableCell>
                 </TableRow>
               ))
             ) : promotionsQuery.isError ? (
               <TableRow>
-                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={8}>
+                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={9}>
                   Failed to load promotions. Check API connectivity.
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={8}>
+                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={9}>
                   No promotions found.
                 </TableCell>
               </TableRow>
@@ -252,6 +402,11 @@ export function PromotionsPage() {
                   </TableCell>
                   <TableCell className="px-4 py-4 text-muted-foreground">
                     {formatDateTime(promo.createdAt)}
+                  </TableCell>
+                  <TableCell className="px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {renderPromoActions(promo)}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

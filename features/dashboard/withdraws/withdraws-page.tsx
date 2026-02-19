@@ -11,6 +11,7 @@ import {
   type PaginatedResult
 } from "@/lib/admin-api";
 import { formatDateTime, formatUsd, shortHash } from "@/lib/formatters";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,7 @@ export function WithdrawsPage() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = React.useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = React.useState(1);
   const [statusFilter, setStatusFilter] = React.useState<AdminWithdrawRequest["status"] | "all">(
     "all"
@@ -70,7 +72,7 @@ export function WithdrawsPage() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, search]);
+  }, [statusFilter, debouncedSearch]);
 
   const withdrawsQuery = useQuery({
     queryKey: ["admin", "withdraw-requests", { page, statusFilter }],
@@ -165,7 +167,7 @@ export function WithdrawsPage() {
 
   const filtered = React.useMemo(() => {
     const withdraws = withdrawsQuery.data?.items ?? [];
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
 
     return withdraws.filter((wd) => {
       if (statusFilter !== "all" && wd.status !== statusFilter) {
@@ -183,7 +185,7 @@ export function WithdrawsPage() {
         wd.address.toLowerCase().includes(q)
       );
     });
-  }, [withdrawsQuery.data?.items, search, statusFilter]);
+  }, [withdrawsQuery.data?.items, debouncedSearch, statusFilter]);
 
   const canReject = rejectReason.trim().length >= 3 && !rejectMutation.isPending;
 
@@ -307,13 +309,6 @@ export function WithdrawsPage() {
                 </div>
               </div>
 
-              {wd.status === "rejected" && wd.rejectReason ? (
-                <div className="mt-4 rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Reject reason</p>
-                  <p className="mt-1">{wd.rejectReason}</p>
-                </div>
-              ) : null}
-
               {wd.status === "pending" ? (
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Button
@@ -401,11 +396,6 @@ export function WithdrawsPage() {
                     <Badge variant={statusVariant(wd.status)} className="capitalize">
                       {wd.status}
                     </Badge>
-                    {wd.status === "rejected" && wd.rejectReason ? (
-                      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                        {wd.rejectReason}
-                      </p>
-                    ) : null}
                   </TableCell>
                   <TableCell className="px-4 py-4 text-right">
                     {wd.status === "pending" ? (
