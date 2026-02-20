@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const locales = ["en"];
 const ACCESS_TOKEN_COOKIE = "token";
-const LEGACY_ACCESS_TOKEN_COOKIE = "access_token";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -16,7 +15,7 @@ export function proxy(request: NextRequest) {
   }
 
   const hasLocale = locales.some(
-    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
+    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
   );
 
   if (!hasLocale) {
@@ -29,9 +28,7 @@ export function proxy(request: NextRequest) {
   const loginPath = `/${locale}/admin/login`;
   const legacyLoginPath = `/${locale}/login`;
   const dashboardPath = `/${locale}/dashboard`;
-  const token =
-    request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ??
-    request.cookies.get(LEGACY_ACCESS_TOKEN_COOKIE)?.value;
+  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const hasToken = Boolean(token);
   const isLoginRoute = pathname === loginPath || pathname === legacyLoginPath;
 
@@ -57,5 +54,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"]
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

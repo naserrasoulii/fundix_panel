@@ -100,7 +100,7 @@ export function GasLogsPage() {
       </header>
 
       <div className="rounded-2xl border bg-background shadow-sm">
-        <Table className="min-w-[1700px] text-sm">
+        <Table className="min-w-[1820px] text-sm">
           <TableHeader className="bg-muted/40 text-left text-xs text-muted-foreground">
             <TableRow className="hover:bg-transparent">
               <TableHead className="px-4 py-3 font-medium">Created</TableHead>
@@ -114,6 +114,7 @@ export function GasLogsPage() {
               <TableHead className="px-4 py-3 font-medium">Sweep Fee (wei)</TableHead>
               <TableHead className="px-4 py-3 font-medium">Topup Gas Used</TableHead>
               <TableHead className="px-4 py-3 font-medium">Topup Fee (wei)</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Total Fee (BNB)</TableHead>
               <TableHead className="px-4 py-3 font-medium">From</TableHead>
               <TableHead className="px-4 py-3 font-medium">To</TableHead>
             </TableRow>
@@ -122,20 +123,20 @@ export function GasLogsPage() {
             {gasLogsQuery.isLoading ? (
               Array.from({ length: 6 }).map((_, index) => (
                 <TableRow key={index}>
-                  <TableCell className="px-4 py-4" colSpan={13}>
+                  <TableCell className="px-4 py-4" colSpan={14}>
                     <div className="h-5 w-full animate-pulse rounded bg-muted" />
                   </TableCell>
                 </TableRow>
               ))
             ) : gasLogsQuery.isError ? (
               <TableRow>
-                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={13}>
+                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={14}>
                   Failed to load gas logs.
                 </TableCell>
               </TableRow>
             ) : (gasLogsQuery.data?.items.length ?? 0) === 0 ? (
               <TableRow>
-                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={13}>
+                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={14}>
                   No gas logs found.
                 </TableCell>
               </TableRow>
@@ -168,6 +169,9 @@ export function GasLogsPage() {
                   </TableCell>
                   <TableCell className="px-4 py-4 font-mono text-xs text-muted-foreground">
                     {renderGasValue(item.topupGasFeeWei)}
+                  </TableCell>
+                  <TableCell className="px-4 py-4 font-mono text-xs text-muted-foreground">
+                    {renderGasValue(item.totalGasFeeBnb)}
                   </TableCell>
                   <TableCell className="px-4 py-4 font-mono text-xs text-muted-foreground">
                     {item.fromAddress ? shortHash(item.fromAddress, 10, 6) : "-"}

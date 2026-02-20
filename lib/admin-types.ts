@@ -112,8 +112,11 @@ export type AdminSweepLog = {
   gasTopupTxHash: string | null;
   sweepGasUsed: string | null;
   sweepGasFeeWei: string | null;
+  sweepGasFeeBnb: string | null;
   topupGasUsed: string | null;
   topupGasFeeWei: string | null;
+  topupGasFeeBnb: string | null;
+  totalGasFeeBnb: string | null;
   errorMessage: string | null;
   startedAt: string | null;
   completedAt: string | null;

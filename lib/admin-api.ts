@@ -196,8 +196,11 @@ type BackendSweepLogItem = {
   gasTopupTxHash?: string | null;
   sweepGasUsed?: string | number | null;
   sweepGasFeeWei?: string | number | null;
+  sweepGasFeeBnb?: string | number | null;
   topupGasUsed?: string | number | null;
   topupGasFeeWei?: string | number | null;
+  topupGasFeeBnb?: string | number | null;
+  totalGasFeeBnb?: string | number | null;
   errorMessage?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
@@ -731,8 +734,11 @@ function mapSweepLog(item: BackendSweepLogItem): AdminSweepLog {
     gasTopupTxHash: normalizeNullableString(item.gasTopupTxHash),
     sweepGasUsed: normalizeNullableString(item.sweepGasUsed),
     sweepGasFeeWei: normalizeNullableString(item.sweepGasFeeWei),
+    sweepGasFeeBnb: normalizeNullableString(item.sweepGasFeeBnb),
     topupGasUsed: normalizeNullableString(item.topupGasUsed),
     topupGasFeeWei: normalizeNullableString(item.topupGasFeeWei),
+    topupGasFeeBnb: normalizeNullableString(item.topupGasFeeBnb),
+    totalGasFeeBnb: normalizeNullableString(item.totalGasFeeBnb),
     errorMessage: normalizeNullableString(item.errorMessage),
     startedAt: normalizeNullableString(item.startedAt),
     completedAt: normalizeNullableString(item.completedAt),
