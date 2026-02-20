@@ -1,6 +1,8 @@
 import type {
   AdminAuditLog,
   AdminBlockchainSummary,
+  AdminDepositCreditItem,
+  AdminDepositCreditsReport,
   AdminManualDepositPayload,
   AdminManualDepositResult,
   AdminDepositScanLog,
@@ -19,6 +21,8 @@ import type {
 export type {
   AdminAuditLog,
   AdminBlockchainSummary,
+  AdminDepositCreditItem,
+  AdminDepositCreditsReport,
   AdminManualDepositPayload,
   AdminManualDepositResult,
   AdminDepositScanLog,
@@ -181,6 +185,8 @@ type BackendSweepLogItem = {
   id?: string;
   network?: string;
   status?: string;
+  purpose?: string | null;
+  sourceAction?: string | null;
   fromAddress?: string;
   toAddress?: string;
   tokenContract?: string;
@@ -200,6 +206,36 @@ type BackendSweepLogItem = {
     username?: string | null;
     email?: string | null;
   } | null;
+};
+
+type BackendDepositCreditItem = {
+  id?: string;
+  userId?: string;
+  network?: string;
+  amount?: string | number;
+  txHash?: string;
+  fromAddress?: string | null;
+  toAddress?: string;
+  status?: string;
+  detectedAt?: string;
+  creditedAt?: string | null;
+  user?: {
+    username?: string | null;
+    email?: string | null;
+  } | null;
+};
+
+type BackendDepositCreditsReportResponse = {
+  total?: number;
+  page?: number;
+  limit?: number;
+  summary?: {
+    totalAmount?: string | number;
+    totalCount?: number;
+    from?: string | null;
+    to?: string | null;
+  };
+  items?: BackendDepositCreditItem[];
 };
 
 type BackendAuditLogItem = {
@@ -318,6 +354,14 @@ type ListGasLogsOptions = {
   status?: string;
   network?: string;
   userId?: string;
+};
+
+type ListDepositCreditsReportOptions = {
+  page?: number;
+  limit?: number;
+  userId?: string;
+  from?: string;
+  to?: string;
 };
 
 type ListAuditLogsOptions = {
@@ -675,6 +719,8 @@ function mapSweepLog(item: BackendSweepLogItem): AdminSweepLog {
     id: normalizeString(item.id),
     network: normalizeString(item.network, "BSC"),
     status: normalizeString(item.status, "TRANSFERRING"),
+    purpose: normalizeNullableString(item.purpose),
+    sourceAction: normalizeNullableString(item.sourceAction),
     fromAddress: normalizeString(item.fromAddress),
     toAddress: normalizeString(item.toAddress),
     tokenContract: normalizeString(item.tokenContract),
@@ -691,6 +737,27 @@ function mapSweepLog(item: BackendSweepLogItem): AdminSweepLog {
     startedAt: normalizeNullableString(item.startedAt),
     completedAt: normalizeNullableString(item.completedAt),
     createdAt: normalizeDate(item.createdAt),
+  };
+}
+
+function mapDepositCreditItem(item: BackendDepositCreditItem): AdminDepositCreditItem {
+  const userId = normalizeString(item.userId);
+  const username = normalizeString(item.user?.username);
+  const email = normalizeString(item.user?.email);
+  const userLabel = username || email || userId || "unknown";
+
+  return {
+    id: normalizeString(item.id),
+    userId,
+    userLabel,
+    network: normalizeString(item.network, "BSC"),
+    amount: normalizeString(item.amount, "0"),
+    txHash: normalizeString(item.txHash),
+    fromAddress: normalizeNullableString(item.fromAddress),
+    toAddress: normalizeString(item.toAddress),
+    status: normalizeString(item.status, "CREDITED"),
+    detectedAt: normalizeDate(item.detectedAt),
+    creditedAt: normalizeNullableString(item.creditedAt),
   };
 }
 
@@ -1036,6 +1103,49 @@ export async function listGasLogs(
     `/api/admin/deposits/gas-logs?${query.toString()}`,
   );
   return toPaginatedResult(data, mapSweepLog, page, limit);
+}
+
+export async function listDepositCreditsReport(
+  options: ListDepositCreditsReportOptions = {},
+): Promise<AdminDepositCreditsReport> {
+  const page = normalizePositiveInt(options.page, DEFAULT_PAGE);
+  const limit = normalizePositiveInt(options.limit, DEFAULT_LIMIT);
+  const query = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  if (options.userId?.trim()) {
+    query.set("userId", options.userId.trim());
+  }
+  if (options.from?.trim()) {
+    query.set("from", options.from.trim());
+  }
+  if (options.to?.trim()) {
+    query.set("to", options.to.trim());
+  }
+
+  const data = await adminRequest<BackendDepositCreditsReportResponse>(
+    `/api/admin/reports/deposit-credits?${query.toString()}`,
+  );
+
+  const items = Array.isArray(data.items) ? data.items.map(mapDepositCreditItem) : [];
+  const totalRaw = Number(data.total);
+  const pageRaw = Number(data.page);
+  const limitRaw = Number(data.limit);
+
+  return {
+    items,
+    total: Number.isFinite(totalRaw) ? Math.max(0, Math.floor(totalRaw)) : items.length,
+    page: Number.isFinite(pageRaw) ? Math.max(1, Math.floor(pageRaw)) : page,
+    limit: Number.isFinite(limitRaw) ? Math.max(1, Math.floor(limitRaw)) : limit,
+    summary: {
+      totalAmount: normalizeString(data.summary?.totalAmount, "0"),
+      totalCount: normalizeCount(data.summary?.totalCount),
+      from: normalizeNullableString(data.summary?.from),
+      to: normalizeNullableString(data.summary?.to),
+    },
+  };
 }
 
 export async function listAuditLogs(

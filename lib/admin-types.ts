@@ -100,6 +100,8 @@ export type AdminSweepLog = {
   id: string;
   network: string;
   status: string;
+  purpose?: string | null;
+  sourceAction?: string | null;
   fromAddress: string;
   toAddress: string;
   tokenContract: string;
@@ -116,6 +118,35 @@ export type AdminSweepLog = {
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
+};
+
+export type AdminDepositCreditItem = {
+  id: string;
+  userId: string;
+  userLabel: string;
+  network: string;
+  amount: string;
+  txHash: string;
+  fromAddress: string | null;
+  toAddress: string;
+  status: string;
+  detectedAt: string;
+  creditedAt: string | null;
+};
+
+export type AdminDepositCreditsSummary = {
+  totalAmount: string;
+  totalCount: number;
+  from: string | null;
+  to: string | null;
+};
+
+export type AdminDepositCreditsReport = {
+  items: AdminDepositCreditItem[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: AdminDepositCreditsSummary;
 };
 
 export type AdminAuditLog = {

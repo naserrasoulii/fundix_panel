@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   Bell,
   ClipboardList,
+  Database,
   Flame,
   LayoutDashboard,
   LogOut,
@@ -49,6 +50,7 @@ const navItems: NavItem[] = [
     href: "/dashboard/transactions",
     icon: ArrowLeftRight,
   },
+  { label: "Deposit Credits", href: "/dashboard/deposit-credits", icon: Database },
   { label: "Withdrawals", href: "/dashboard/withdraws", icon: Wallet },
   { label: "Promotions", href: "/dashboard/promote", icon: Megaphone },
 ];

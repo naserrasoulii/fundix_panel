@@ -104,6 +104,7 @@ export function GasLogsPage() {
           <TableHeader className="bg-muted/40 text-left text-xs text-muted-foreground">
             <TableRow className="hover:bg-transparent">
               <TableHead className="px-4 py-3 font-medium">Created</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Purpose</TableHead>
               <TableHead className="px-4 py-3 font-medium">Status</TableHead>
               <TableHead className="px-4 py-3 font-medium">User</TableHead>
               <TableHead className="px-4 py-3 font-medium">Amount</TableHead>
@@ -121,20 +122,20 @@ export function GasLogsPage() {
             {gasLogsQuery.isLoading ? (
               Array.from({ length: 6 }).map((_, index) => (
                 <TableRow key={index}>
-                  <TableCell className="px-4 py-4" colSpan={12}>
+                  <TableCell className="px-4 py-4" colSpan={13}>
                     <div className="h-5 w-full animate-pulse rounded bg-muted" />
                   </TableCell>
                 </TableRow>
               ))
             ) : gasLogsQuery.isError ? (
               <TableRow>
-                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={12}>
+                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={13}>
                   Failed to load gas logs.
                 </TableCell>
               </TableRow>
             ) : (gasLogsQuery.data?.items.length ?? 0) === 0 ? (
               <TableRow>
-                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={12}>
+                <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={13}>
                   No gas logs found.
                 </TableCell>
               </TableRow>
@@ -142,6 +143,9 @@ export function GasLogsPage() {
               gasLogsQuery.data?.items.map((item: AdminSweepLog) => (
                 <TableRow key={item.id}>
                   <TableCell className="px-4 py-4 text-muted-foreground">{formatDateTime(item.createdAt)}</TableCell>
+                  <TableCell className="px-4 py-4 text-muted-foreground">
+                    {item.purpose ?? item.sourceAction ?? "-"}
+                  </TableCell>
                   <TableCell className="px-4 py-4">
                     <Badge variant={sweepStatusVariant(item.status)}>{item.status}</Badge>
                   </TableCell>
@@ -166,10 +170,10 @@ export function GasLogsPage() {
                     {renderGasValue(item.topupGasFeeWei)}
                   </TableCell>
                   <TableCell className="px-4 py-4 font-mono text-xs text-muted-foreground">
-                    {shortHash(item.fromAddress, 10, 6)}
+                    {item.fromAddress ? shortHash(item.fromAddress, 10, 6) : "-"}
                   </TableCell>
                   <TableCell className="px-4 py-4 font-mono text-xs text-muted-foreground">
-                    {shortHash(item.toAddress, 10, 6)}
+                    {item.toAddress ? shortHash(item.toAddress, 10, 6) : "-"}
                   </TableCell>
                 </TableRow>
               ))
