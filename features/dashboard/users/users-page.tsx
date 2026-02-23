@@ -196,10 +196,12 @@ export function UsersPage() {
 
       <div className="rounded-2xl border bg-background shadow-sm">
         <div className="overflow-x-auto">
-          <Table className="min-w-[980px] text-sm">
+          <Table className="min-w-[1240px] text-sm">
             <TableHeader className="bg-muted/40 text-left text-xs text-muted-foreground">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="px-4 py-3 font-medium">User</TableHead>
+                <TableHead className="px-4 py-3 font-medium">Own referral code</TableHead>
+                <TableHead className="px-4 py-3 font-medium">Registered with</TableHead>
                 <TableHead className="px-4 py-3 font-medium">Role</TableHead>
                 <TableHead className="px-4 py-3 font-medium">Status</TableHead>
                 <TableHead className="px-4 py-3 font-medium">Direct referrals</TableHead>
@@ -212,20 +214,20 @@ export function UsersPage() {
               {usersQuery.isLoading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <TableRow key={index}>
-                    <TableCell className="px-4 py-4" colSpan={7}>
+                    <TableCell className="px-4 py-4" colSpan={9}>
                       <div className="h-5 w-full animate-pulse rounded bg-muted" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : usersQuery.isError ? (
                 <TableRow>
-                  <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={7}>
+                  <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={9}>
                     Failed to load users. Check API connectivity.
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={7}>
+                  <TableCell className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={9}>
                     No users found.
                   </TableCell>
                 </TableRow>
@@ -242,6 +244,14 @@ export function UsersPage() {
                           <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <span className="font-mono text-xs">{user.referralCode || "—"}</span>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <span className="font-mono text-xs">
+                        {user.registeredWithReferralCode || "—"}
+                      </span>
                     </TableCell>
                     <TableCell className="px-4 py-4">
                       <Badge variant={roleBadge(user.role)} className="capitalize">

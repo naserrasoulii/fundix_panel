@@ -6,6 +6,8 @@ export type AdminUser = {
   id: string;
   username: string;
   email: string;
+  referralCode: string;
+  registeredWithReferralCode: string | null;
   role: AdminUserRole;
   status: AdminUserStatus;
   kycStatus: AdminKycStatus;

@@ -100,6 +100,8 @@ type BackendUserItem = {
   id?: string;
   email?: string;
   username?: string;
+  referralCode?: string;
+  registeredWithReferralCode?: string | null;
   status?: string;
   role?: string;
   directReferrals?: number;
@@ -599,6 +601,10 @@ function mapUser(item: BackendUserItem): AdminUser {
     id: normalizeString(item.id),
     username: normalizeString(item.username),
     email: normalizeString(item.email),
+    referralCode: normalizeString(item.referralCode),
+    registeredWithReferralCode: normalizeNullableString(
+      item.registeredWithReferralCode,
+    ),
     role: mapUserRole(normalizeString(item.role, "USER")),
     status: mapUserStatus(normalizeString(item.status, "ACTIVE")),
     kycStatus: "unverified",
